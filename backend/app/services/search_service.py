@@ -187,29 +187,36 @@ class SearchService:
             }
         }
 
-    def expand_keywords(self, expression: str, factor: int) -> Dict[str, Any]:
+    def expand_keywords(self, expression: str, factor: int) -> Dict[str, List[Dict[str, Any]]]:
         """
-        Expands keywords using the embedding service.
+        Expands keywords using the embedding service and ensures all numeric
+        types are JSON serializable.
         """
         if not self.rag_engine.embedding_service:
             raise ConnectionError("Embedding service is not available.")
         
-        # This logic is adapted from your original keyword_handlers. It's now a method
-        # of the service, making it more encapsulated.
-        # The original function returned a tuple for Gradio, we just need the data.
         import re
-        import json
-
         terms = re.findall(r'\b(?!AND|OR|NOT\b)[a-zA-ZäöüÄÖÜß]+\b', expression, re.IGNORECASE)
         if not terms:
             return {}
 
-        expanded_words = {}
+        expanded_words_data = {}
         for term in set(terms):
-            similar_words_info = self.rag_engine.embedding_service.find_similar_words(
-                term.lower().strip(), 
-                top_n=factor
-            )
-            expanded_words[term] = [info['word'] for info in similar_words_info]
+            term_clean = term.lower().strip()
+            similar_words_info = self.rag_engine.embedding_service.find_similar_words(term_clean, top_n=factor)
+            
+            # --- THIS IS THE FIX ---
+            # Create a new list with standard Python types
+            sanitized_list = []
+            for item in similar_words_info:
+                sanitized_list.append({
+                    'word': item['word'],
+                    # Convert numpy.float32 to standard Python float
+                    'similarity': float(item['similarity']), 
+                    # Convert numpy.int64 to standard Python int
+                    'frequency': int(item.get('frequency', 0)) 
+                })
+            
+            expanded_words_data[term_clean] = sanitized_list
 
-        return expanded_words
+        return expanded_words_data
