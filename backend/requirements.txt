@@ -1,0 +1,30 @@
+# backend/requirements.txt
+# ==============================================================================
+# Python dependencies for the backend application.
+# Install these using: pip install -r requirements.txt
+# ==============================================================================
+
+# Flask Framework
+Flask
+Flask-Cors
+python-dotenv
+
+# Core RAG and Machine Learning Libraries
+# (Taken from your original project, excluding gradio)
+langchain
+langchain-community
+langchain-core
+langchain-openai
+torch
+torchvision
+torchaudio
+chromadb
+fasttext
+pandas
+numpy
+scikit-learn
+tqdm
+
+# For testing (optional but recommended)
+pytest
+pytest-mock

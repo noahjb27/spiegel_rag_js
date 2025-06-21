@@ -1,0 +1,24 @@
+# backend/pyproject.toml
+# ==============================================================================
+# Python Project Configuration File (FIXED)
+#
+# This version explicitly tells setuptools to only find packages within
+# the 'app' directory. This resolves the "Multiple top-level packages" error
+# caused by the 'models' and 'tests' directories being at the same level.
+# ==============================================================================
+
+[project]
+name = "spiegel-rag-backend"
+version = "0.1.0"
+description = "The Flask backend for the Spiegel RAG application."
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+# --- The Fix is Here ---
+# This section tells setuptools exactly where to look for your Python packages.
+[tool.setuptools.packages.find]
+where = ["."]  # Look in the current directory (the 'backend' root)
+include = ["app*"]  # Include only the 'app' package and its sub-packages
+exclude = ["tests*"] # Explicitly exclude the tests folder
