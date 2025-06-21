@@ -60,3 +60,14 @@ export interface AppState {
     performAnalysis: (analysisParams: any) => Promise<void>;
     downloadResults: (format: 'csv' | 'json') => Promise<void>;
 }
+
+// Types for keyword expansion preview
+export interface SimilarWord {
+    word: string;
+    similarity: number;
+    frequency: number;
+}
+
+export interface KeywordExpansion {
+    [term: string]: SimilarWord[];
+}

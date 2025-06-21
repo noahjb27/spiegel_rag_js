@@ -29,6 +29,7 @@ def expand_keywords():
         
         logger.info(f"Expanding keywords for expression: '{expression}' with factor {factor}")
         expanded_data = g.search_service.expand_keywords(expression, factor)
+        logger.info(f"API returning data: {expanded_data}")
         
         return jsonify(expanded_data)
 

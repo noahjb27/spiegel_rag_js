@@ -16,20 +16,44 @@ import {
     Download as DownloadIcon, ArrowForward as ArrowForwardIcon
 } from '@mui/icons-material';
 import { useAppStore } from '@/store/useAppStore';
+import { Chunk } from '@/types';
+
+const ChunkItem = ({ chunk }: { chunk: Chunk }) => {
+    const { selectedChunkIds, toggleChunkSelection } = useAppStore();
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    return (
+        <Paper variant="outlined" sx={{ p: 2, mb: 1 }}>
+            <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
+                <Checkbox checked={selectedChunkIds.includes(chunk.id)} onChange={() => toggleChunkSelection(chunk.id)} />
+                <Box sx={{ flexGrow: 1}}>
+                    <Typography variant="body1" component="h3" sx={{fontWeight: 'bold'}}>
+                        {chunk.metadata.Artikeltitel || 'Unbekannter Titel'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Datum: {chunk.metadata.Datum || 'N/A'} | Relevanz: {chunk.relevance_score.toFixed(3)}
+                        {chunk.llm_evaluation_score && ` | LLM-Score: ${chunk.llm_evaluation_score.toFixed(3)}`}
+                    </Typography>
+                </Box>
+                <Button onClick={() => setIsExpanded(!isExpanded)} size="small">{isExpanded ? 'Weniger' : 'Mehr'}</Button>
+            </Box>
+             <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                <Typography variant="body2" sx={{mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1, whiteSpace: 'pre-wrap', maxHeight: 300, overflowY: 'auto'}}>
+                    {chunk.content}
+                </Typography>
+             </Collapse>
+        </Paper>
+    );
+};
+
 
 export const ResultsDisplay = () => {
     const { 
         searchResults, isSearching, searchError, selectedChunkIds, 
-        toggleChunkSelection, selectAllChunks, deselectAllChunks, 
+        selectAllChunks, deselectAllChunks, 
         transferChunksForAnalysis, downloadResults 
     } = useAppStore();
     
-    const [expanded, setExpanded] = useState<{[key: number]: boolean}>({});
-
-    const handleToggleExpand = (chunkId: number) => {
-        setExpanded(prev => ({...prev, [chunkId]: !prev[chunkId]}));
-    };
-
     if (isSearching) {
         return <CircularProgress sx={{ display: 'block', margin: '2rem auto' }} />;
     }
@@ -62,27 +86,7 @@ export const ResultsDisplay = () => {
                         </Button>
                     </Paper>
 
-                    {searchResults.chunks.map(chunk => (
-                        <Paper key={chunk.id} variant="outlined" sx={{ p: 2 }}>
-                            <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
-                                <Checkbox checked={selectedChunkIds.includes(chunk.id)} onChange={() => toggleChunkSelection(chunk.id)} />
-                                <Box sx={{ flexGrow: 1}}>
-                                    <Typography variant="body1" component="h3" sx={{fontWeight: 'bold'}}>
-                                        {chunk.metadata.Artikeltitel || 'Unbekannter Titel'}
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary">
-                                        Datum: {chunk.metadata.Datum || 'N/A'} | Relevanz: {chunk.relevance_score.toFixed(3)}
-                                    </Typography>
-                                </Box>
-                                <Button onClick={() => handleToggleExpand(chunk.id)} size="small">{expanded[chunk.id] ? 'Weniger' : 'Mehr'}</Button>
-                            </Box>
-                             <Collapse in={expanded[chunk.id]} timeout="auto" unmountOnExit>
-                                <Typography variant="body2" sx={{mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1, whiteSpace: 'pre-wrap', maxHeight: 300, overflowY: 'auto'}}>
-                                    {chunk.content}
-                                </Typography>
-                             </Collapse>
-                        </Paper>
-                    ))}
+                    {searchResults.chunks.map(chunk => <ChunkItem key={chunk.id} chunk={chunk} />)}
                 </AccordionDetails>
              </Accordion>
         </Box>
