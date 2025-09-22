@@ -1,0 +1,10 @@
+# Project-level Python requirements
+# ==============================================================================
+# This file aggregates Python dependencies for the whole repo.
+# It defers to the backend's requirements so you can install from the repo root.
+# Usage: pip install -r requirements.txt
+# ==============================================================================
+
+-r backend/requirements.txt
+
+
