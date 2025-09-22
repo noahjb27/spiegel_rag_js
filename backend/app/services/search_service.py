@@ -135,9 +135,10 @@ class SearchService:
             chunks_for_ui.append({
                 'content': doc.page_content,
                 'metadata': doc.metadata,
-                'relevance_score': llm_score,
+                'relevance_score': doc.metadata.get('vector_similarity_score', llm_score),
                 'vector_similarity_score': doc.metadata.get('vector_similarity_score', 0.0),
-                'llm_evaluation_score': doc.metadata.get('llm_evaluation_score', llm_score)
+                'llm_evaluation_score': doc.metadata.get('llm_evaluation_score', llm_score),
+                'llm_evaluation_text': doc.metadata.get('evaluation_text', '')
             })
 
         results = {

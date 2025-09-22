@@ -40,10 +40,20 @@ def download_json():
         @after_this_request
         def cleanup(response):
             try:
+                # Add a small delay and retry mechanism for Windows
+                import time
+                time.sleep(0.1)  # Brief delay to allow file handle to be released
                 os.remove(file_path)
                 logger.info(f"Cleaned up temporary file: {file_path}")
             except OSError as e:
-                logger.error(f"Error cleaning up file {file_path}: {e}", exc_info=True)
+                # On Windows, file might still be in use. Try again after delay
+                try:
+                    time.sleep(0.5)
+                    os.remove(file_path)
+                    logger.info(f"Cleaned up temporary file after retry: {file_path}")
+                except OSError as retry_e:
+                    logger.error(f"Error cleaning up file {file_path}: {retry_e}", exc_info=True)
+                    # File will be cleaned up by OS temp directory maintenance
             return response
 
         # send_file will handle streaming the file content to the user
@@ -83,10 +93,20 @@ def download_csv():
         @after_this_request
         def cleanup(response):
             try:
+                # Add a small delay and retry mechanism for Windows
+                import time
+                time.sleep(0.1)  # Brief delay to allow file handle to be released
                 os.remove(file_path)
                 logger.info(f"Cleaned up temporary file: {file_path}")
             except OSError as e:
-                logger.error(f"Error cleaning up file {file_path}: {e}", exc_info=True)
+                # On Windows, file might still be in use. Try again after delay
+                try:
+                    time.sleep(0.5)
+                    os.remove(file_path)
+                    logger.info(f"Cleaned up temporary file after retry: {file_path}")
+                except OSError as retry_e:
+                    logger.error(f"Error cleaning up file {file_path}: {retry_e}", exc_info=True)
+                    # File will be cleaned up by OS temp directory maintenance
             return response
 
         # send_file handles the response correctly

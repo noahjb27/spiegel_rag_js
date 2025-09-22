@@ -38,9 +38,16 @@ const ChunkItem = ({ chunk }: { chunk: Chunk }) => {
                 <Button onClick={() => setIsExpanded(!isExpanded)} size="small">{isExpanded ? 'Weniger' : 'Mehr'}</Button>
             </Box>
              <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                <Typography variant="body2" sx={{mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1, whiteSpace: 'pre-wrap', maxHeight: 300, overflowY: 'auto'}}>
-                    {chunk.content}
-                </Typography>
+                <Box sx={{mt: 2}}>
+                    <Typography variant="body2" sx={{p: 2, bgcolor: 'background.default', borderRadius: 1, whiteSpace: 'pre-wrap', maxHeight: 300, overflowY: 'auto'}}>
+                        {chunk.content}
+                    </Typography>
+                    {chunk.llm_evaluation_text && (
+                        <Typography variant="body2" sx={{mt: 1, p: 2, bgcolor: 'info.light', borderRadius: 1, border: '1px solid', borderColor: 'info.main'}}>
+                            <strong>KI-Bewertung:</strong> {chunk.llm_evaluation_text}
+                        </Typography>
+                    )}
+                </Box>
              </Collapse>
         </Paper>
     );

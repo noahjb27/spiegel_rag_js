@@ -18,6 +18,8 @@ export interface Chunk {
     metadata: ChunkMetadata;
     relevance_score: number;
     llm_evaluation_score?: number; // Optional, for LLM-assisted search
+    llm_evaluation_text?: string; // Optional, LLM evaluation reasoning
+    vector_similarity_score?: number; // Optional, cosine similarity score
 }
 
 export interface SearchResults {

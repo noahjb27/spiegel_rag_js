@@ -16,6 +16,7 @@ import { ResultsDisplay } from '@/components/ResultsDisplay';
 import { AnalysisPanel } from '@/components/AnalysisPanel';
 import { KeywordAnalysisPanel } from '@/components/KeywordAnalysisPanel';
 import { InfoPanel } from '@/components/InfoPanel';
+import { Footer } from '@/components/Footer';
 
 export default function HomePage() {
     const { activeTab, setActiveTab } = useAppStore();
@@ -24,6 +25,7 @@ export default function HomePage() {
     };
 
     return (
+        <>
         <Container maxWidth="lg" sx={{ my: 4 }}>
             <Typography variant="h1" component="h1">
                 SPIEGEL RAG System
@@ -50,5 +52,8 @@ export default function HomePage() {
                 {activeTab === 3 && <InfoPanel />}
             </Box>
         </Container>
+        
+        <Footer />
+        </>
     );
 }

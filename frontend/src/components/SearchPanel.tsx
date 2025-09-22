@@ -27,9 +27,12 @@ type KeywordPreviewData = {
 }
 
 // Helper component for styled sliders
-const LabeledSlider = ({ name, label, value, onChange, ...props }: any) => (
+const LabeledSlider = ({ name, label, value, onChange, hideValue, ...props }: any) => (
     <Box sx={{my: 1, px: 1}}>
-        <Typography gutterBottom variant="body2">{label}: <Typography component="span" color="primary.main" sx={{fontWeight: 'bold'}}>{value}</Typography></Typography>
+        <Typography gutterBottom variant="body2">
+            {label}{!hideValue && `: `}
+            {!hideValue && <Typography component="span" color="primary.main" sx={{fontWeight: 'bold'}}>{value}</Typography>}
+        </Typography>
         <Slider name={name} value={value} onChange={onChange} valueLabelDisplay="auto" {...props} />
     </Box>
 );

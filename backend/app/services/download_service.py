@@ -81,7 +81,7 @@ def create_csv_file(retrieved_chunks: Optional[Dict[str, Any]]) -> Optional[str]
         
         # Define headers
         if has_dual_scores:
-            headers = ['chunk_id', 'relevance_score', 'vector_similarity_score', 'llm_evaluation_score', 'title', 'date', 'url', 'content']
+            headers = ['chunk_id', 'relevance_score', 'vector_similarity_score', 'llm_evaluation_score', 'llm_evaluation_text', 'title', 'date', 'url', 'content']
         else:
             headers = ['chunk_id', 'relevance_score', 'title', 'date', 'url', 'content']
         writer.writerow(headers)
@@ -96,7 +96,8 @@ def create_csv_file(retrieved_chunks: Optional[Dict[str, Any]]) -> Optional[str]
             if has_dual_scores:
                  row.extend([
                     chunk.get('vector_similarity_score', 0.0),
-                    chunk.get('llm_evaluation_score', 0.0)
+                    chunk.get('llm_evaluation_score', 0.0),
+                    chunk.get('llm_evaluation_text', '')
                  ])
             row.extend([
                 metadata.get('Artikeltitel', 'N/A'),
