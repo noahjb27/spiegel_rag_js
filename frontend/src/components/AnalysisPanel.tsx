@@ -18,18 +18,78 @@ import {
 import { useAppStore } from '@/store/useAppStore';
 import { AnalysisResult } from '@/types';
 
-// A sub-component to cleanly display the final answer
+// Enhanced analysis results display with better typography and mobile support
 const AnalysisResultsDisplay = ({ result }: { result: AnalysisResult }) => (
-    <Paper elevation={5} sx={{p:3, mt: 4, borderColor: 'primary.main', borderTop: 4}}>
-        <Typography variant="h2" gutterBottom>Analyse-Ergebnis</Typography>
-        <Typography sx={{whiteSpace: 'pre-wrap', fontFamily: 'monospace', bgcolor: 'background.default', p: 2, borderRadius: 1}}>
-            {result.answer}
+    <Paper 
+        elevation={8} 
+        sx={{
+            p: { xs: 2, sm: 3 }, 
+            mt: 4, 
+            borderRadius: 3,
+            background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(33, 150, 243, 0.1) 100%)',
+            border: '2px solid',
+            borderColor: 'success.main',
+            position: 'relative',
+            '&::before': {
+                content: '"🎯"', // might remove later
+                position: 'absolute',
+                top: { xs: -10, sm: -12 },
+                left: { xs: 16, sm: 24 },
+                fontSize: { xs: '1.5rem', sm: '2rem' },
+                backgroundColor: 'background.paper',
+                px: 1,
+                borderRadius: '50%'
+            }
+        }}
+    >
+        <Typography 
+            variant="h2" 
+            gutterBottom 
+            sx={{ 
+                color: 'success.light',
+                mb: 3,
+                mt: { xs: 1, sm: 0 }
+            }}
+        >
+            Analyse-Ergebnis
         </Typography>
-        <Accordion sx={{mt: 2}}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>Metadaten</AccordionSummary>
+        <Paper
+            elevation={2}
+            sx={{
+                p: { xs: 2, sm: 3 },
+                bgcolor: 'rgba(255, 255, 255, 0.02)',
+                borderRadius: 2,
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                mb: 3
+            }}
+        >
+            <Typography 
+                sx={{
+                    whiteSpace: 'pre-wrap', 
+                    fontFamily: 'Georgia, serif', // Better readability for analysis text
+                    fontSize: { xs: '0.95rem', sm: '1rem' },
+                    lineHeight: 1.7,
+                    color: 'text.primary'
+                }}
+            >
+                {result.answer}
+            </Typography>
+        </Paper>
+        <Accordion sx={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>📊 Metadaten & Statistiken</Typography>
+            </AccordionSummary>
             <AccordionDetails>
-                <Typography variant="body2">Modell: {result.metadata.model_used}</Typography>
-                <Typography variant="body2">Analysezeit: {result.metadata.analysis_time.toFixed(2)} Sekunden</Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold', minWidth: 120 }}>🤖 Modell:</Typography>
+                        <Typography variant="body2" color="primary.light">{result.metadata.model_used}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold', minWidth: 120 }}>⏱️ Analysezeit:</Typography>
+                        <Typography variant="body2" color="info.light">{result.metadata.analysis_time.toFixed(2)} Sekunden</Typography>
+                    </Box>
+                </Box>
             </AccordionDetails>
         </Accordion>
     </Paper>
@@ -67,7 +127,18 @@ export const AnalysisPanel = () => {
     }
 
     return (
-        <Paper elevation={3} sx={{p: 3, mt: 2, display: 'flex', flexDirection: 'column', gap: 3}}>
+        <Paper 
+            elevation={3} 
+            sx={{
+                p: { xs: 2, sm: 3 }, 
+                mt: 2, 
+                borderRadius: 2,
+                background: 'linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(45, 45, 45, 0.95) 100%)',
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: { xs: 2, sm: 3 }
+            }}
+        >
             <Accordion defaultExpanded>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Typography>1. Übertragene Quellen ({transferredChunks.length})</Typography>
@@ -77,14 +148,74 @@ export const AnalysisPanel = () => {
                         Diese Texte wurden aus der Heuristik übertragen und werden für die Analyse verwendet.
                         Um die Auswahl zu ändern, kehren Sie zur Heuristik zurück.
                     </Typography>
-                    <List dense sx={{maxHeight: 200, overflowY: 'auto', bgcolor: 'background.default', borderRadius: 1}}>
-                        {transferredChunks.map(chunk => (
-                            <ListItem key={chunk.id}>
-                                <ListItemIcon><ArticleIcon fontSize="small"/></ListItemIcon>
-                                <ListItemText 
-                                    primary={chunk.metadata.Artikeltitel} 
-                                    secondary={`Datum: ${chunk.metadata.Datum} | Relevanz: ${chunk.relevance_score.toFixed(3)}`}
-                                />
+                    <List 
+                        dense 
+                        sx={{
+                            maxHeight: { xs: 250, sm: 300 }, 
+                            overflowY: 'auto', 
+                            bgcolor: 'rgba(255, 255, 255, 0.02)', 
+                            borderRadius: 2,
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            p: 1
+                        }}
+                    >
+                        {transferredChunks.map((chunk, index) => (
+                            <ListItem 
+                                key={chunk.id}
+                                sx={{
+                                    mb: 1,
+                                    bgcolor: 'rgba(215, 84, 37, 0.1)',
+                                    borderRadius: 1,
+                                    border: '1px solid rgba(215, 84, 37, 0.3)',
+                                    '&:last-child': { mb: 0 }
+                                }}
+                            >
+                                <ListItemIcon>
+                                    <Box sx={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'center',
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: '50%',
+                                        bgcolor: 'primary.main',
+                                        color: 'white',
+                                        fontSize: '0.875rem',
+                                        fontWeight: 'bold'
+                                    }}>
+                                        {index + 1}
+                                    </Box>
+                                </ListItemIcon>
+                                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                                    <Typography 
+                                        variant="body2" 
+                                        component="div"
+                                        sx={{ 
+                                            fontWeight: 500,
+                                            color: 'primary.light',
+                                            fontSize: { xs: '0.875rem', sm: '1rem' },
+                                            mb: 0.5
+                                        }}
+                                    >
+                                        {chunk.metadata.Artikeltitel || 'Unbekannter Titel'}
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                        <Typography variant="caption" color="text.secondary" component="div">
+                                            📅 {chunk.metadata.Datum || 'N/A'}
+                                        </Typography>
+                                        <Typography 
+                                            variant="caption" 
+                                            component="div"
+                                            sx={{ 
+                                                color: chunk.relevance_score > 0.7 ? 'success.main' : 
+                                                       chunk.relevance_score > 0.5 ? 'warning.main' : 'text.secondary',
+                                                fontWeight: 500
+                                            }}
+                                        >
+                                            🎯 Relevanz: {chunk.relevance_score.toFixed(3)}
+                                        </Typography>
+                                    </Box>
+                                </Box>
                             </ListItem>
                         ))}
                     </List>
@@ -108,8 +239,10 @@ export const AnalysisPanel = () => {
                      <FormControl>
                         <RadioGroup row name="model_selection" value={params.model_selection} onChange={handleParamChange}>
                              <FormControlLabel value="hu-llm3" control={<Radio />} label="HU-LLM 3 (Berlin)" />
+                             <FormControlLabel value="deepseek-reasoner" control={<Radio />} label="DeepSeek Reasoner" />
+                             <FormControlLabel value="anthropic-claude" control={<Radio />} label="Anthropic Claude 3.5" />
                              <FormControlLabel value="openai-gpt4o" control={<Radio />} label="OpenAI GPT-4o" />
-                             <FormControlLabel value="gemini-pro" control={<Radio />} label="Google Gemini" />
+                             <FormControlLabel value="gemini-pro" control={<Radio />} label="Google Gemini 2.5 Pro" />
                         </RadioGroup>
                     </FormControl>
                     <Box>
@@ -128,8 +261,50 @@ export const AnalysisPanel = () => {
                 </AccordionDetails>
             </Accordion>
             
-            <Button onClick={handleAnalyze} variant="contained" disabled={isAnalyzing} startIcon={isAnalyzing ? <CircularProgress size={20}/> : <ScienceIcon/>} sx={{py: 1.5}}>
-                {isAnalyzing ? 'Analyse läuft...' : 'Analyse starten'}
+            <Button 
+                onClick={handleAnalyze} 
+                variant="contained" 
+                disabled={isAnalyzing} 
+                startIcon={isAnalyzing ? <CircularProgress size={20}/> : <ScienceIcon/>} 
+                sx={{
+                    py: { xs: 2, sm: 1.5 },
+                    fontSize: { xs: '1.1rem', sm: '1rem' },
+                    fontWeight: 600,
+                    background: isAnalyzing ? undefined : 'linear-gradient(45deg, #2196f3 30%, #64b5f6 90%)',
+                    boxShadow: isAnalyzing ? undefined : '0 4px 12px rgba(33, 150, 243, 0.3)',
+                    '&:hover': {
+                        background: isAnalyzing ? undefined : 'linear-gradient(45deg, #1976d2 30%, #2196f3 90%)',
+                        boxShadow: isAnalyzing ? undefined : '0 6px 16px rgba(33, 150, 243, 0.4)',
+                        transform: isAnalyzing ? 'none' : 'translateY(-2px)',
+                    },
+                    '&:disabled': {
+                        background: 'rgba(255, 255, 255, 0.12)',
+                        color: 'rgba(255, 255, 255, 0.3)',
+                    }
+                }}
+            >
+                {isAnalyzing ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <span>Analyse läuft</span>
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                            {[0, 0.3, 0.6].map((delay, index) => (
+                                <Box 
+                                    key={index}
+                                    sx={{ 
+                                        width: 4, height: 4, borderRadius: '50%', 
+                                        backgroundColor: 'currentColor',
+                                        animation: 'pulse 1.5s ease-in-out infinite',
+                                        animationDelay: `${delay}s`,
+                                        '@keyframes pulse': {
+                                            '0%, 80%, 100%': { opacity: 0.3 },
+                                            '40%': { opacity: 1 }
+                                        }
+                                    }} 
+                                />
+                            ))}
+                        </Box>
+                    </Box>
+                ) : '🔬 Analyse starten'}
             </Button>
             
             {analysisError && <Alert severity="error" sx={{mt: 2}}>{analysisError}</Alert>}

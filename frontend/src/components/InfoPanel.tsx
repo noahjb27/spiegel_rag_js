@@ -13,35 +13,46 @@ export const InfoPanel = () => {
         <Paper elevation={3} sx={{p: 3, mt: 2}}>
             <Typography variant="h2" gutterBottom>Über das SPIEGEL RAG-System</Typography>
             <Typography paragraph>
-                Dieses System ermöglicht die Durchsuchung und Analyse von Der Spiegel-Artikeln aus den Jahren 1948 bis 1979 
-                mithilfe von Retrieval-Augmented Generation (RAG). Es ist als professionelles Forschungswerkzeug konzipiert,
-                das einen zweistufigen Workflow bietet.
+                Dieses System ermöglicht die professionelle Durchsuchung und Analyse von Der Spiegel-Artikeln aus den Jahren 1948 bis 1979 
+                mithilfe von Retrieval-Augmented Generation (RAG). Es bietet Forschern einen strukturierten zweistufigen Workflow 
+                für die systematische Quellenauswahl und -analyse.
             </Typography>
             <Divider sx={{my: 2}} />
             
-            <Typography variant="h5" gutterBottom>Zwei-Phasen-Ansatz</Typography>
+            <Typography variant="h5" gutterBottom>Zweistufiger Forschungsworkflow</Typography>
             <List>
                 <ListItem>
                     <ListItemIcon><CheckCircleOutline color="primary"/></ListItemIcon>
                     <ListItemText 
                         primary="Phase 1: Heuristik (Quellenauswahl)" 
-                        secondary="Finden Sie relevante Textquellen mithilfe der semantischen Standard-Suche oder der erweiterten LLM-unterstützten Auswahl, die eine KI-basierte Bewertung der Quellen vornimmt."
+                        secondary="Semantische Suche mit Keyword-Filterung oder LLM-unterstützte Auswahl mit KI-basierter Relevanzbewertung. Unterstützt Zeitraumfilterung und semantische Begriffserweiterung."
                     />
                 </ListItem>
                  <ListItem>
                     <ListItemIcon><CheckCircleOutline color="primary"/></ListItemIcon>
                     <ListItemText 
                         primary="Phase 2: Analyse (Quellenverarbeitung)" 
-                        secondary="Übertragen Sie Ihre ausgewählten Quellen, formulieren Sie eine präzise Forschungsfrage und erhalten Sie eine vom Sprachmodell generierte, quellenbasierte Antwort, die sich ausschließlich auf die bereitgestellten Texte stützt."
+                        secondary="Quellenbasierte Analyse mit 6 verfügbaren Sprachmodellen (HU Berlin LLMs, OpenAI GPT-4o, Google Gemini 2.5 Pro, DeepSeek Reasoner, Anthropic Claude). Generiert wissenschaftlich fundierte Antworten ausschließlich basierend auf den ausgewählten Texten."
                     />
                 </ListItem>
             </List>
 
             <Divider sx={{my: 2}} />
-            <Typography variant="h5" gutterBottom>Technische Details</Typography>
-             <Typography paragraph>
-                Die Anwendung verwendet ein React/Next.js-Frontend für eine moderne und reaktionsschnelle Benutzeroberfläche und ein robustes Python/Flask-Backend, das die Kernlogik über eine API bereitstellt. 
-                Die semantische Suche wird durch ChromaDB und Ollama Embedding-Modelle realisiert.
+            <Typography variant="h5" gutterBottom>Technische Infrastruktur</Typography>
+            <Typography paragraph>
+                <strong>Frontend:</strong> React/Next.js mit TypeScript und Material-UI für eine moderne, responsive Benutzeroberfläche.
+            </Typography>
+            <Typography paragraph>
+                <strong>Backend:</strong> Python/Flask API mit modularer Architektur. Nutzt ChromaDB für Vektorspeicherung, 
+                Ollama für Text-Embeddings und FastText-Modelle für semantische Begriffserweiterung.
+            </Typography>
+            <Typography paragraph>
+                <strong>LLM-Integration:</strong> Unterstützt sowohl lokale HU Berlin Compute-Cluster als auch externe APIs 
+                (OpenAI, Google, DeepSeek, Anthropic) für flexible Analysemöglichkeiten.
+            </Typography>
+            <Typography paragraph>
+                <strong>Skalierung:</strong> Optimiert für bis zu 15+ gleichzeitige Nutzer mit robusten Fehlerbehandlungs- 
+                und Monitoring-Mechanismen.
             </Typography>
         </Paper>
     );
