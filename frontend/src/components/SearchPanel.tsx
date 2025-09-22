@@ -115,7 +115,7 @@ export const SearchPanel = () => {
             <Typography variant="h2" gutterBottom>Suchmethode wählen</Typography>
             <RadioGroup row value={searchMode} onChange={(e) => setSearchMode(e.target.value as 'standard' | 'llm-assisted')}>
                 <FormControlLabel value="standard" control={<Radio />} label="Standard-Suche (Schnell & Direkt)" />
-                <FormControlLabel value="llm_assisted" control={<Radio />} label="LLM-Unterstützte Auswahl (KI-gestützt & Gründlich)" />
+                <FormControlLabel value="llm-assisted" control={<Radio />} label="LLM-Unterstützte Auswahl (KI-gestützt & Gründlich)" />
             </RadioGroup>
 
             <Divider sx={{my:2}}/>
@@ -198,7 +198,44 @@ export const SearchPanel = () => {
                     </Accordion>
                 </Box>
             ) : (
-                 <Box> {/* LLM-Assisted Options Here */} </Box>
+                 <Box>
+                    <Typography variant="h5" gutterBottom>Optionen für LLM-unterstützte Auswahl</Typography>
+                    <Accordion defaultExpanded>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>Retrieval-Einstellungen</AccordionSummary>
+                        <AccordionDetails sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
+                            <TextField name="llm_assisted_keywords" label="Schlagwörter (boolescher Ausdruck)" value={formState.llm_assisted_keywords} onChange={handleFormChange} fullWidth />
+                            <FormControl fullWidth>
+                                <InputLabel id="llm-assisted-search-in-label">In Feldern suchen</InputLabel>
+                                <Select labelId="llm-assisted-search-in-label" multiple name="llm_assisted_search_in" value={formState.llm_assisted_search_in as any} label="In Feldern suchen" onChange={handleSelectChange}>
+                                    <MenuItem value={'Text'}>Text</MenuItem>
+                                    <MenuItem value={'Titel'}>Titel</MenuItem>
+                                    <MenuItem value={'Zusammenfassung'}>Zusammenfassung</MenuItem>
+                                </Select>
+                            </FormControl>
+                            <LabeledSlider label="Min. Retrieval-Relevanz" name="llm_assisted_min_retrieval_score" value={formState.llm_assisted_min_retrieval_score} onChange={(e:any, v:number|number[])=>handleSliderChange('llm_assisted_min_retrieval_score', v as number)} min={0} max={1} step={0.05} />
+                            <FormControlLabel control={<Checkbox name="llm_assisted_use_time_intervals" checked={formState.llm_assisted_use_time_intervals} onChange={handleCheckboxChange} />} label="Zeit-Interval-Suche aktivieren" />
+                            {formState.llm_assisted_use_time_intervals && (
+                                <LabeledSlider label="Intervall-Größe (Jahre)" name="llm_assisted_time_interval_size" value={formState.llm_assisted_time_interval_size} onChange={(e:any, v:number|number[])=>handleSliderChange('llm_assisted_time_interval_size', v as number)} min={1} max={10} step={1} />
+                            )}
+                            <LabeledSlider label="Initiale Chunks pro Fenster" name="chunks_per_interval_initial" value={formState.chunks_per_interval_initial} onChange={(e:any, v:number|number[])=>handleSliderChange('chunks_per_interval_initial', v as number)} min={10} max={200} step={10} />
+                            <LabeledSlider label="Finale Chunks pro Fenster" name="chunks_per_interval_final" value={formState.chunks_per_interval_final} onChange={(e:any, v:number|number[])=>handleSliderChange('chunks_per_interval_final', v as number)} min={5} max={50} step={5} />
+                        </AccordionDetails>
+                    </Accordion>
+                    <Accordion>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>LLM-Einstellungen</AccordionSummary>
+                        <AccordionDetails sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
+                            <FormControl fullWidth>
+                                <InputLabel id="llm-assisted-model-label">Modell</InputLabel>
+                                <Select labelId="llm-assisted-model-label" name="llm_assisted_model" value={formState.llm_assisted_model} label="Modell" onChange={handleSelectChange}>
+                                    <MenuItem value={'hu-llm3'}>HU-LLM 3 (Berlin)</MenuItem>
+                                    <MenuItem value={'openai-gpt4o'}>OpenAI GPT-4o</MenuItem>
+                                </Select>
+                            </FormControl>
+                            <LabeledSlider label="Temperatur" name="llm_assisted_temperature" value={formState.llm_assisted_temperature} onChange={(e:any, v:number|number[])=>handleSliderChange('llm_assisted_temperature', v as number)} min={0} max={1} step={0.05} />
+                            <TextField name="llm_assisted_system_prompt_text" label="System-Prompt" fullWidth multiline rows={6} value={formState.llm_assisted_system_prompt_text} onChange={handleFormChange} />
+                        </AccordionDetails>
+                    </Accordion>
+                </Box>
             )}
 
             <Button variant="contained" onClick={handleSearch} disabled={isSearching} startIcon={isSearching ? <CircularProgress size={20} color="inherit"/> : <FindInPageIcon />} sx={{mt: 3, width: '100%', py: 1.5}}>

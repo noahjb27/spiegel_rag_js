@@ -81,6 +81,7 @@ export const ResultsDisplay = () => {
                         <Typography variant="body2">{selectedChunkIds.length} / {searchResults.chunks.length} ausgewählt</Typography>
                         <Box sx={{flexGrow: 1}} />
                         <Button onClick={() => downloadResults('csv')} size="small" startIcon={<DownloadIcon />}>Download CSV</Button>
+                        <Button onClick={() => downloadResults('json')} size="small" startIcon={<DownloadIcon />}>Download JSON</Button>
                         <Button variant="contained" size="small" endIcon={<ArrowForwardIcon />} onClick={transferChunksForAnalysis} disabled={selectedChunkIds.length === 0}>
                             Auswahl in Analyse übertragen
                         </Button>

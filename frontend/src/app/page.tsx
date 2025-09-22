@@ -7,13 +7,14 @@
 
 import React from 'react';
 import { Container, Box, Tabs, Tab, Typography } from '@mui/material';
-import { Science, FindInPage, Info } from '@mui/icons-material';
+import { Science, FindInPage, Info, AutoFixHigh } from '@mui/icons-material';
 import { useAppStore } from '@/store/useAppStore';
 
 // We will create these component files next
 import { SearchPanel } from '@/components/SearchPanel';
 import { ResultsDisplay } from '@/components/ResultsDisplay';
 import { AnalysisPanel } from '@/components/AnalysisPanel';
+import { KeywordAnalysisPanel } from '@/components/KeywordAnalysisPanel';
 import { InfoPanel } from '@/components/InfoPanel';
 
 export default function HomePage() {
@@ -32,6 +33,7 @@ export default function HomePage() {
                 <Tabs value={activeTab} onChange={handleTabChange}>
                     <Tab label="Heuristik" icon={<FindInPage />} iconPosition="start" />
                     <Tab label="Analyse" icon={<Science />} iconPosition="start" />
+                    <Tab label="Schlagwort-Analyse" icon={<AutoFixHigh />} iconPosition="start" />
                     <Tab label="Info" icon={<Info />} iconPosition="start" />
                 </Tabs>
             </Box>
@@ -44,7 +46,8 @@ export default function HomePage() {
                     </>
                 )}
                 {activeTab === 1 && <AnalysisPanel />}
-                {activeTab === 2 && <InfoPanel />}
+                {activeTab === 2 && <KeywordAnalysisPanel />}
+                {activeTab === 3 && <InfoPanel />}
             </Box>
         </Container>
     );
