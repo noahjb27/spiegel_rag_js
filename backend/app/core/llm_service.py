@@ -1,5 +1,5 @@
 """
-Enhanced LLM service supporting multiple providers: HU-LLM, OpenAI, Gemini, and Ollama (DeepSeek R1).
+Enhanced LLM service supporting multiple providers: HU-LLM, OpenAI, Gemini, DeepSeek API, and Anthropic.
 """
 import logging
 import requests
@@ -11,10 +11,18 @@ from openai import OpenAI
 import google.generativeai as genai
 from app.config import settings
 
+# Try to import anthropic
+try:
+    import anthropic
+    ANTHROPIC_AVAILABLE = True
+except ImportError:
+    anthropic = None
+    ANTHROPIC_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 class LLMService:
-    """Enhanced service for interacting with multiple language model providers including Ollama."""
+    """Enhanced service for interacting with multiple language model providers."""
     
     def __init__(self):
         """Initialize LLM clients for all providers."""
@@ -30,8 +38,11 @@ class LLMService:
         # Initialize Gemini client if API key is available
         self._init_gemini_client()
         
-        # Initialize Ollama client for DeepSeek R1
-        self._init_ollama_client()
+        # Initialize DeepSeek API client
+        self._init_deepseek_client()
+        
+        # Initialize Anthropic client if available
+        self._init_anthropic_client()
         
         logger.info(f"LLM Service initialized with {len(self.available_models)} available models")
 
@@ -151,32 +162,68 @@ class LLMService:
             except Exception as fallback_error:
                 logger.error(f"❌ Gemini fallback initialization also failed: {fallback_error}")
 
-    def _init_ollama_client(self):
-        """Initialize Ollama client for DeepSeek R1."""
+    def _init_deepseek_client(self):
+        """Initialize DeepSeek API client."""
+        if not settings.DEEPSEEK_API_KEY or settings.DEEPSEEK_API_KEY == "":
+            logger.info("DeepSeek API key not configured, skipping DeepSeek initialization")
+            return
+            
         try:
-            # Test Ollama connection by checking if the model is available
-            models_url = f"{settings.OLLAMA_BASE_URL}/api/tags"
+            # Create OpenAI-compatible client for DeepSeek
+            client = OpenAI(
+                api_key=settings.DEEPSEEK_API_KEY,
+                base_url=f"{settings.DEEPSEEK_API_BASE_URL}/v1"
+            )
             
-            response = requests.get(models_url, timeout=10)
-            response.raise_for_status()
-            
-            models_data = response.json()
-            available_models = [model["name"] for model in models_data.get("models", [])]
-            
-            if settings.DEEPSEEK_R1_MODEL_NAME in available_models:
-                self.clients["deepseek-r1"] = {
-                    "client": None,  # We'll use direct HTTP requests
-                    "type": "ollama",
-                    "model_id": settings.DEEPSEEK_R1_MODEL_NAME,
-                    "endpoint": settings.OLLAMA_BASE_URL
+            # Test connection by listing models
+            models = client.models.list()
+            if models and models.data:
+                self.clients["deepseek-reasoner"] = {
+                    "client": client,
+                    "type": "deepseek",
+                    "model_id": settings.DEEPSEEK_MODEL_NAME,
+                    "endpoint": settings.DEEPSEEK_API_BASE_URL
                 }
-                self.available_models.append("deepseek-r1")
-                logger.info(f"✅ DeepSeek R1 ({settings.DEEPSEEK_R1_MODEL_NAME}) initialized successfully at {settings.OLLAMA_BASE_URL}")
+                self.available_models.append("deepseek-reasoner")
+                logger.info(f"✅ DeepSeek API ({settings.DEEPSEEK_MODEL_NAME}) initialized successfully")
             else:
-                logger.warning(f"⚠️ DeepSeek R1 model '{settings.DEEPSEEK_R1_MODEL_NAME}' not found in Ollama. Available models: {available_models}")
+                logger.warning("⚠️ DeepSeek API connected but no models found")
                 
         except Exception as e:
-            logger.error(f"❌ Failed to initialize Ollama/DeepSeek R1: {e}")
+            logger.error(f"❌ Failed to initialize DeepSeek API: {e}")
+    
+    def _init_anthropic_client(self):
+        """Initialize Anthropic client if available."""
+        if not ANTHROPIC_AVAILABLE:
+            logger.info("Anthropic library not installed, skipping Anthropic initialization")
+            return
+            
+        if not settings.ANTHROPIC_API_KEY or settings.ANTHROPIC_API_KEY == "":
+            logger.info("Anthropic API key not configured, skipping Anthropic initialization")
+            return
+            
+        try:
+            client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+            
+            # Test connection with a simple message
+            test_message = client.messages.create(
+                model=settings.ANTHROPIC_MODEL_NAME,
+                max_tokens=1,
+                messages=[{"role": "user", "content": "Hi"}]
+            )
+            
+            if test_message:
+                self.clients["anthropic-claude"] = {
+                    "client": client,
+                    "type": "anthropic",
+                    "model_id": settings.ANTHROPIC_MODEL_NAME,
+                    "endpoint": settings.ANTHROPIC_API_BASE_URL
+                }
+                self.available_models.append("anthropic-claude")
+                logger.info(f"✅ Anthropic Claude ({settings.ANTHROPIC_MODEL_NAME}) initialized successfully")
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize Anthropic: {e}")
             
     def get_available_models(self) -> List[str]:
         """Get list of available model names."""
@@ -262,8 +309,12 @@ class LLMService:
                 return self._generate_gemini_response(
                     client_info, prompt, system_prompt, temperature, model
                 )
-            elif client_type == "ollama":
-                return self._generate_ollama_response(
+            elif client_type == "deepseek":
+                return self._generate_deepseek_response(
+                    client_info, prompt, system_prompt, temperature, model, response_format
+                )
+            elif client_type == "anthropic":
+                return self._generate_anthropic_response(
                     client_info, prompt, system_prompt, temperature, model
                 )
             else:
@@ -386,7 +437,45 @@ class LLMService:
             }
         }
 
-    def _generate_ollama_response(
+    def _generate_deepseek_response(
+        self, 
+        client_info: Dict, 
+        prompt: str, 
+        system_prompt: str, 
+        temperature: float, 
+        model: str,
+        response_format: Optional[Dict] = None
+    ) -> Dict[str, Any]:
+        """Generate response using DeepSeek API."""
+        client = client_info["client"]
+        model_id = client_info["model_id"]
+        
+        # Build request parameters
+        request_params = {
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt}
+            ],
+            "model": model_id,
+            "temperature": temperature
+        }
+        
+        # Add response_format if specified
+        if response_format:
+            request_params["response_format"] = response_format
+        
+        chat_completion = client.chat.completions.create(**request_params)
+        
+        return {
+            "text": chat_completion.choices[0].message.content,
+            "model": model,
+            "model_id": model_id,
+            "provider": "deepseek",
+            "endpoint": client_info["endpoint"],
+            "metadata": chat_completion.model_dump()
+        }
+
+    def _generate_anthropic_response(
         self, 
         client_info: Dict, 
         prompt: str, 
@@ -394,74 +483,35 @@ class LLMService:
         temperature: float, 
         model: str
     ) -> Dict[str, Any]:
-        """Generate response using Ollama (DeepSeek R1)."""
+        """Generate response using Anthropic Claude."""
+        client = client_info["client"]
         model_id = client_info["model_id"]
-        endpoint = client_info["endpoint"]
         
-        # Prepare the Ollama API request
-        url = f"{endpoint}/api/chat"
+        # Anthropic uses a different format
+        message = client.messages.create(
+            model=model_id,
+            max_tokens=4000,  # Adjust as needed
+            temperature=temperature,
+            system=system_prompt,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
         
-        # Build messages array
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt}
-        ]
-        
-        # Prepare request payload
-        payload = {
-            "model": model_id,
-            "messages": messages,
-            "stream": False,  # We want a single response
-            "options": {
-                "temperature": temperature,
+        return {
+            "text": message.content[0].text,
+            "model": model,
+            "model_id": model_id,
+            "provider": "anthropic",
+            "endpoint": client_info["endpoint"],
+            "metadata": {
+                "usage": {
+                    "input_tokens": message.usage.input_tokens,
+                    "output_tokens": message.usage.output_tokens
+                },
+                "stop_reason": message.stop_reason
             }
         }
-        
-        
-        try:
-            # Make the request to Ollama
-            response = requests.post(
-                url, 
-                json=payload, 
-                timeout=120,  # DeepSeek R1 might take longer
-                headers={"Content-Type": "application/json"}
-            )
-            response.raise_for_status()
-            
-            # Parse the response
-            response_data = response.json()
-            
-            # Extract the generated text
-            generated_text = response_data.get("message", {}).get("content", "")
-            
-            # Extract metadata
-            metadata = {
-                "total_duration": response_data.get("total_duration", 0),
-                "load_duration": response_data.get("load_duration", 0),
-                "prompt_eval_count": response_data.get("prompt_eval_count", 0),
-                "prompt_eval_duration": response_data.get("prompt_eval_duration", 0),
-                "eval_count": response_data.get("eval_count", 0),
-                "eval_duration": response_data.get("eval_duration", 0),
-            }
-            
-            return {
-                "text": generated_text,
-                "model": model,
-                "model_id": model_id,
-                "provider": "ollama",
-                "endpoint": endpoint,
-                "metadata": metadata
-            }
-            
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Ollama request failed: {e}")
-            raise Exception(f"Failed to get response from Ollama: {e}")
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse Ollama response: {e}")
-            raise Exception(f"Invalid response from Ollama: {e}")
-        except Exception as e:
-            logger.error(f"Unexpected error with Ollama: {e}")
-            raise
 
     def health_check(self) -> Dict[str, Any]:
         """Perform health check on all configured LLM providers."""
@@ -497,11 +547,20 @@ class LLMService:
                         "endpoint": client_info["endpoint"],
                         "model_id": client_info["model_id"]  # ADDED: Include model_id
                     }
-                elif client_info["type"] == "ollama":
-                    # Test Ollama connection
-                    models_url = f"{client_info['endpoint']}/api/tags"
-                    response = requests.get(models_url, timeout=5)
-                    response.raise_for_status()
+                elif client_info["type"] == "deepseek":
+                    # Test DeepSeek API connection
+                    client_info["client"].models.list()
+                    health_status["providers"][model_name] = {
+                        "status": "healthy",
+                        "endpoint": client_info["endpoint"]
+                    }
+                elif client_info["type"] == "anthropic":
+                    # Test Anthropic connection with minimal request
+                    test_message = client_info["client"].messages.create(
+                        model=client_info["model_id"],
+                        max_tokens=1,
+                        messages=[{"role": "user", "content": "Hi"}]
+                    )
                     health_status["providers"][model_name] = {
                         "status": "healthy",
                         "endpoint": client_info["endpoint"]

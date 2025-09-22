@@ -17,6 +17,8 @@ load_dotenv()
 # LLM API Settings
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
 # HU LLM Settings - Multiple endpoints
 HU_LLM1_API_URL = os.getenv("HU_LLM1_API_URL", "https://llm1-compute.cms.hu-berlin.de/v1/")
@@ -32,8 +34,13 @@ CHROMA_DB_CACHE_DIR = os.getenv("CHROMA_DB_CACHE_DIR", "./cache")
 OLLAMA_MODEL_NAME = os.getenv("OLLAMA_MODEL_NAME", "nomic-embed-text")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "https://dighist.geschichte.hu-berlin.de:11434")
 
-# DeepSeek R1 Settings
-DEEPSEEK_R1_MODEL_NAME = os.getenv("DEEPSEEK_R1_MODEL_NAME", "deepseek-r1:32b")
+# DeepSeek API Settings
+DEEPSEEK_API_BASE_URL = os.getenv("DEEPSEEK_API_BASE_URL", "https://api.deepseek.com")
+DEEPSEEK_MODEL_NAME = os.getenv("DEEPSEEK_MODEL_NAME", "deepseek-reasoner")
+
+# Anthropic API Settings
+ANTHROPIC_API_BASE_URL = os.getenv("ANTHROPIC_API_BASE_URL", "https://api.anthropic.com")
+ANTHROPIC_MODEL_NAME = os.getenv("ANTHROPIC_MODEL_NAME", "claude-3-5-sonnet-20241022")
 
 # =============================================================================
 # PATH SETTINGS
@@ -63,15 +70,16 @@ MAX_YEAR = 1979
 DEFAULT_LLM_MODEL = os.getenv("DEFAULT_LLM_MODEL", "hu-llm3")
 
 # Available LLM models
-AVAILABLE_LLM_MODELS = ["hu-llm1", "hu-llm3", "deepseek-r1", "openai-gpt4o", "gemini-pro"]
+AVAILABLE_LLM_MODELS = ["hu-llm1", "hu-llm3", "deepseek-reasoner", "openai-gpt4o", "gemini-pro", "anthropic-claude"]
 
 # LLM Display Names for UI - UPDATED terminology
 LLM_DISPLAY_NAMES = {
     "hu-llm1": "HU-LLM 1 (Berlin)",
     "hu-llm3": "HU-LLM 3 (Berlin)", 
-    "deepseek-r1": "DeepSeek R1 32B (Ollama)",
+    "deepseek-reasoner": "DeepSeek Reasoner (API)",
     "openai-gpt4o": "OpenAI GPT-4o",
-    "gemini-pro": "Google Gemini 2.5 Pro"
+    "gemini-pro": "Google Gemini 2.5 Pro",
+    "anthropic-claude": "Anthropic Claude 3.5 Sonnet"
 }
 
 # Semantic Expansion Settings
@@ -126,11 +134,17 @@ def get_llm_config(model_name: str) -> Dict[str, str]:
             "model_id": "llm3",
             "api_key": "required-but-not-used"
         },
-        "deepseek-r1": {
-            "type": "ollama",
-            "base_url": OLLAMA_BASE_URL,
-            "model_id": DEEPSEEK_R1_MODEL_NAME,
-            "api_key": "not-required"
+        "deepseek-reasoner": {
+            "type": "deepseek",
+            "base_url": DEEPSEEK_API_BASE_URL,
+            "model_id": DEEPSEEK_MODEL_NAME,
+            "api_key": DEEPSEEK_API_KEY
+        },
+        "anthropic-claude": {
+            "type": "anthropic",
+            "base_url": ANTHROPIC_API_BASE_URL,
+            "model_id": ANTHROPIC_MODEL_NAME,
+            "api_key": ANTHROPIC_API_KEY
         },
         "openai-gpt4o": {
             "type": "openai",

@@ -22,7 +22,9 @@ def create_app():
     Creates and an instance of the Flask application.
     """
     app = Flask(__name__)
-    CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
+    # CORS configuration - update origins for production
+    cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+    CORS(app, resources={r"/api/*": {"origins": [origin.strip() for origin in cors_origins]}})
 
     # --- Initialize Services ONCE at startup ---
     # We create the service instance when the app is created.

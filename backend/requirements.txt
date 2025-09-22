@@ -25,6 +25,11 @@ numpy
 scikit-learn
 tqdm
 
+# LLM API clients
+openai
+google-generativeai>=0.8.0
+anthropic>=0.40.0
+
 # For testing (optional but recommended)
 pytest
 pytest-mock
