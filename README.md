@@ -1,6 +1,6 @@
 # SPIEGEL RAG System
 
-A professional Retrieval-Augmented Generation (RAG) system for searching and analyzing historical SPIEGEL magazine articles (1948-1979). This system provides researchers with powerful tools for semantic search and AI-assisted analysis of historical German media content.
+A Retrieval-Augmented Generation (RAG) system for searching and analyzing historical SPIEGEL magazine articles from 1948-1979. This system provides researchers with powerful tools for semantic search and AI-assisted analysis.
 
 ## 🏗️ System Architecture
 
@@ -21,7 +21,7 @@ spiegel_rag_js/
 └── README.md           # This file
 ```
 
-## 🚀 Quick Deployment Guide
+## Deployment Guide
 
 ### For Production Server Deployment
 
@@ -40,18 +40,15 @@ cd spiegel_rag_js/backend
 # 2. Install Python dependencies
 pip install -r requirements.txt
 
-# 3. Install production server
-pip install gunicorn
-
-# 4. Configure environment
+# 3. Configure environment
 cp .env.example .env
 # Edit .env with your domain and API keys (see configuration section)
 
-# 5. Download required models (CRITICAL - 1.3GB download)
+# 4. Download required models (CRITICAL - 1.3GB download)
 python model_import.py
 
-# 6. Start production server
-gunicorn -w 4 -b 0.0.0.0:5001 "app:create_app()"
+# 5. Start production server
+python run.py
 ```
 
 #### 3. Frontend Setup
@@ -63,7 +60,7 @@ cd ../frontend
 npm install
 
 # 3. Configure API endpoint
-# Create .env with:
+# configure .env in backend:
 # NEXT_PUBLIC_API_BASE_URL=https://your-backend-domain.com
 
 # 4. Build for production
@@ -99,49 +96,6 @@ npm start
 ### Available Language Models
 - **HU Berlin LLMs**: llm1, llm3 (no API keys required)
 - **External APIs**: OpenAI GPT-4o, Google Gemini 2.5 Pro, DeepSeek Reasoner, Anthropic Claude 3.5 Sonnet
-
-## 📊 Performance & Scalability
-
-### Tested Specifications
-- **Concurrent Users**: Supports 15+ simultaneous users
-- **Search Performance**: 2-5 seconds for standard search
-- **LLM Analysis**: 15-80 seconds depending on model and complexity
-- **Memory Usage**: ~2GB (includes 1.3GB FastText models)
-
-### Infrastructure Dependencies
-- **ChromaDB**: Vector storage and similarity search
-- **Ollama**: Text embedding generation
-- **HU Berlin LLM Clusters**: Default language model access
-
-## 🔒 Security Features
-
-- **Environment-based Configuration**: Sensitive data in .env files
-- **CORS Protection**: Configurable origin restrictions
-- **Input Validation**: Comprehensive parameter validation
-- **Error Handling**: Graceful failure with user-friendly messages
-- **API Rate Limiting**: Built-in request throttling
-
-## 🧪 Development
-
-### Local Development Setup
-```bash
-# Backend (Terminal 1)
-cd backend
-python run.py  # Runs on localhost:5001
-
-# Frontend (Terminal 2)  
-cd frontend
-npm run dev    # Runs on localhost:3000
-```
-
-### Testing
-```bash
-# Backend tests
-cd backend && python -m pytest tests/
-
-# Frontend linting
-cd frontend && npm run lint
-```
 
 ## 📚 API Documentation
 
@@ -188,36 +142,7 @@ Out of memory during model loading
 - **Health Checks**: `/api/health` endpoint for service monitoring
 - **Error Tracking**: Comprehensive exception handling and reporting
 
-## 🚀 Production Checklist
-
-Before deploying:
-- [ ] Update `CORS_ORIGINS` in backend/.env
-- [ ] Configure API keys for desired LLM providers
-- [ ] Download models: `python model_import.py`
-- [ ] Use production server: `gunicorn` (not `python run.py`)
-- [ ] Set up monitoring for external dependencies
-- [ ] Configure domain/SSL certificates
-- [ ] Test health check endpoint
-
-## 🤝 Support
-
-### Infrastructure Dependencies
-This system relies on HU Berlin infrastructure:
-- ChromaDB instance for vector storage
-- Ollama service for embeddings
-- LLM compute clusters for analysis
-
-Contact HU Berlin system administrators for infrastructure issues.
-
-### Development Team
-For application-level issues or feature requests, refer to the development team.
-
-## 📄 License
-
-[Add appropriate license information here]
-
 ---
 
 **Last Updated**: September 2025  
-**Version**: 1.0.0  
-**Tested For**: 15+ concurrent users
+**Version**: 1.0.0
