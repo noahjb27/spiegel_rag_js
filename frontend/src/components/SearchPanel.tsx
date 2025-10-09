@@ -11,8 +11,10 @@ import {
     TextField, Slider, Button, CircularProgress, Accordion,
     AccordionSummary, AccordionDetails, Checkbox,
     MenuItem, Select, InputLabel, FormControl, Divider, Alert,
-    Table, TableBody, TableCell, TableContainer, TableHead, TableRow, SelectChangeEvent
+    Table, TableBody, TableCell, TableContainer, TableHead, TableRow, SelectChangeEvent,
+    useMediaQuery, useTheme
 } from '@mui/material';
+import type { SliderProps } from '@mui/material/Slider';
 import { FindInPage as FindInPageIcon, ExpandMore as ExpandMoreIcon, AutoFixHigh as AutoFixHighIcon } from '@mui/icons-material';
 import { useAppStore } from '@/store/useAppStore';
 import apiService from '@/lib/api';
@@ -27,7 +29,16 @@ type KeywordPreviewData = {
 }
 
 // Enhanced slider component with better mobile UX and accessibility
-const LabeledSlider = ({ name, label, value, onChange, hideValue, unit = '', ...props }: any) => (
+type LabeledSliderProps = Omit<SliderProps, 'onChange' | 'value'> & {
+    name: string;
+    label: string;
+    value: number | number[];
+    onChange: (event: Event, value: number | number[]) => void;
+    hideValue?: boolean;
+    unit?: string;
+};
+
+const LabeledSlider = ({ name, label, value, onChange, hideValue, unit = '', ...props }: LabeledSliderProps) => (
     <Box sx={{ my: 2, px: { xs: 0, sm: 1 } }}>
         <Typography gutterBottom variant="body2" component="label" htmlFor={name}>
             {label}{!hideValue && `: `}
@@ -100,7 +111,7 @@ export const SearchPanel = () => {
         setFormState(prev => ({ ...prev, [name!]: value }));
     };
     
-    const handleSelectChange = (event: SelectChangeEvent<any>) => {
+    const handleSelectChange = (event: SelectChangeEvent<string | string[]>) => {
         const { name, value } = event.target;
         setFormState(prev => ({ ...prev, [name]: value }));
     };
@@ -125,8 +136,8 @@ export const SearchPanel = () => {
                 params: { expression: formState.keywords, factor: formState.semantic_expansion_factor }
             });
             setKeywordPreview({data: response.data, error: null});
-        } catch (err: any) {
-            setKeywordPreview({data: null, error: err.response?.data?.error || "Fehler bei der Vorschau."})
+        } catch {
+            setKeywordPreview({data: null, error: "Fehler bei der Vorschau."})
         }
     };
     
@@ -138,7 +149,12 @@ export const SearchPanel = () => {
         const span = year_end - year_start + 1;
         const num_intervals = Math.ceil(span / time_interval_size);
         return `Der Zeitraum von ${span} Jahren wird in ${num_intervals} Intervalle à ca. ${time_interval_size} Jahre aufgeteilt.`;
-    }, [formState.year_start, formState.year_end, formState.time_interval_size, formState.use_time_intervals]);
+    }, [formState]);
+
+    // Responsive rows for multiline text fields
+    const theme = useTheme();
+    const isXs = useMediaQuery(theme.breakpoints.down('sm'));
+    const retrievalRows = isXs ? 3 : 2;
 
     return (
         <Paper elevation={3} sx={{ 
@@ -186,7 +202,7 @@ export const SearchPanel = () => {
                 label="Retrieval-Query" 
                 fullWidth 
                 multiline 
-                rows={{ xs: 3, sm: 2 }}
+                rows={retrievalRows}
                 value={formState.retrieval_query} 
                 onChange={handleFormChange} 
                 placeholder="Beschreiben Sie, welche Art von Inhalten Sie im Archiv finden möchten..." 
@@ -196,7 +212,7 @@ export const SearchPanel = () => {
             />
             <FormControl fullWidth margin="normal">
                 <InputLabel id="chunk-size-label">Chunking-Größe</InputLabel>
-                <Select labelId="chunk-size-label" name="chunk_size" value={formState.chunk_size} label="Chunking-Größe" onChange={handleSelectChange}>
+                <Select<number> labelId="chunk-size-label" name="chunk_size" value={formState.chunk_size} label="Chunking-Größe" onChange={(e) => setFormState(prev => ({...prev, chunk_size: Number(e.target.value)}))}>
                     <MenuItem value={500}>500 Zeichen (Präzision)</MenuItem>
                     <MenuItem value={2000}>2000 Zeichen (Balance)</MenuItem>
                     <MenuItem value={3000}>3000 Zeichen (Kontext)</MenuItem>
@@ -206,7 +222,7 @@ export const SearchPanel = () => {
                 label="Zeitraum" 
                 name="years" 
                 value={[formState.year_start, formState.year_end]} 
-                onChange={(e: any, val: number | number[]) => { 
+                onChange={(_e: Event, val: number | number[]) => { 
                     handleSliderChange('year_start', (val as number[])[0]); 
                     handleSliderChange('year_end', (val as number[])[1]); 
                 }} 
@@ -225,7 +241,7 @@ export const SearchPanel = () => {
             {searchMode === 'standard' ? (
                 <Box>
                     <Typography variant="h5" gutterBottom>Optionen für Standard-Suche</Typography>
-                    <LabeledSlider label={formState.use_time_intervals ? 'Ergebnisse pro Zeit-Intervall' : 'Anzahl Ergebnisse (gesamt)'} name={formState.use_time_intervals ? 'chunks_per_interval' : 'top_k'} value={formState.use_time_intervals ? formState.chunks_per_interval : formState.top_k} onChange={(e: any, val: number | number[]) => handleSliderChange(formState.use_time_intervals ? 'chunks_per_interval' : 'top_k', val as number)} step={1} marks min={1} max={formState.use_time_intervals ? 20 : 50} />
+                    <LabeledSlider label={formState.use_time_intervals ? 'Ergebnisse pro Zeit-Intervall' : 'Anzahl Ergebnisse (gesamt)'} name={formState.use_time_intervals ? 'chunks_per_interval' : 'top_k'} value={formState.use_time_intervals ? formState.chunks_per_interval : formState.top_k} onChange={(_e: Event, val: number | number[]) => handleSliderChange(formState.use_time_intervals ? 'chunks_per_interval' : 'top_k', val as number)} step={1} marks min={1} max={formState.use_time_intervals ? 20 : 50} />
                     <Accordion>
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}>Erweiterte Einstellungen</AccordionSummary>
                         <AccordionDetails>
@@ -236,7 +252,7 @@ export const SearchPanel = () => {
                                     <FormControlLabel control={<Checkbox name="use_semantic_expansion" checked={formState.use_semantic_expansion} onChange={handleCheckboxChange} />} label="Semantische Erweiterung" />
                                     {formState.use_semantic_expansion && (
                                         <>
-                                        <LabeledSlider label="Anzahl ähnlicher Wörter" name="semantic_expansion_factor" value={formState.semantic_expansion_factor} onChange={(e: any, val: number | number[]) => handleSliderChange('semantic_expansion_factor', val as number)} min={1} max={10} step={1} />
+                                        <LabeledSlider label="Anzahl ähnlicher Wörter" name="semantic_expansion_factor" value={formState.semantic_expansion_factor} onChange={(_e: Event, val: number | number[]) => handleSliderChange('semantic_expansion_factor', val as number)} min={1} max={10} step={1} />
                                         <Button 
                                             onClick={handlePreviewKeywords} 
                                             startIcon={<AutoFixHighIcon/>} 
@@ -315,7 +331,7 @@ export const SearchPanel = () => {
                                     <FormControlLabel control={<Checkbox name="use_time_intervals" checked={formState.use_time_intervals} onChange={handleCheckboxChange} />} label="Zeit-Interval-Suche aktivieren" />
                                     {formState.use_time_intervals && (
                                         <>
-                                            <LabeledSlider label="Intervall-Größe (Jahre)" name="time_interval_size" value={formState.time_interval_size} onChange={(e:any, v:number|number[])=>handleSliderChange('time_interval_size',v as number)} min={1} max={10} step={1} />
+                                            <LabeledSlider label="Intervall-Größe (Jahre)" name="time_interval_size" value={formState.time_interval_size} onChange={(_e: Event, v: number | number[])=>handleSliderChange('time_interval_size', v as number)} min={1} max={10} step={1} />
                                             <Alert severity="info" icon={false}>{timeIntervalCalculation}</Alert>
                                         </>
                                     )}
@@ -333,19 +349,19 @@ export const SearchPanel = () => {
                             <TextField name="llm_assisted_keywords" label="Schlagwörter (boolescher Ausdruck)" value={formState.llm_assisted_keywords} onChange={handleFormChange} fullWidth />
                             <FormControl fullWidth>
                                 <InputLabel id="llm-assisted-search-in-label">In Feldern suchen</InputLabel>
-                                <Select labelId="llm-assisted-search-in-label" multiple name="llm_assisted_search_in" value={formState.llm_assisted_search_in as any} label="In Feldern suchen" onChange={handleSelectChange}>
+                                <Select labelId="llm-assisted-search-in-label" multiple name="llm_assisted_search_in" value={formState.llm_assisted_search_in} label="In Feldern suchen" onChange={handleSelectChange}>
                                     <MenuItem value={'Text'}>Text</MenuItem>
                                     <MenuItem value={'Titel'}>Titel</MenuItem>
                                     <MenuItem value={'Zusammenfassung'}>Zusammenfassung</MenuItem>
                                 </Select>
                             </FormControl>
-                            <LabeledSlider label="Min. Retrieval-Relevanz" name="llm_assisted_min_retrieval_score" value={formState.llm_assisted_min_retrieval_score} onChange={(e:any, v:number|number[])=>handleSliderChange('llm_assisted_min_retrieval_score', v as number)} min={0} max={1} step={0.05} />
+                            <LabeledSlider label="Min. Retrieval-Relevanz" name="llm_assisted_min_retrieval_score" value={formState.llm_assisted_min_retrieval_score} onChange={(_e: Event, v: number | number[])=>handleSliderChange('llm_assisted_min_retrieval_score', v as number)} min={0} max={1} step={0.05} />
                             <FormControlLabel control={<Checkbox name="llm_assisted_use_time_intervals" checked={formState.llm_assisted_use_time_intervals} onChange={handleCheckboxChange} />} label="Zeit-Interval-Suche aktivieren" />
                             {formState.llm_assisted_use_time_intervals && (
-                                <LabeledSlider label="Intervall-Größe (Jahre)" name="llm_assisted_time_interval_size" value={formState.llm_assisted_time_interval_size} onChange={(e:any, v:number|number[])=>handleSliderChange('llm_assisted_time_interval_size', v as number)} min={1} max={10} step={1} />
+                                <LabeledSlider label="Intervall-Größe (Jahre)" name="llm_assisted_time_interval_size" value={formState.llm_assisted_time_interval_size} onChange={(_e: Event, v: number | number[])=>handleSliderChange('llm_assisted_time_interval_size', v as number)} min={1} max={10} step={1} />
                             )}
-                            <LabeledSlider label="Initiale Chunks pro Fenster" name="chunks_per_interval_initial" value={formState.chunks_per_interval_initial} onChange={(e:any, v:number|number[])=>handleSliderChange('chunks_per_interval_initial', v as number)} min={10} max={200} step={10} />
-                            <LabeledSlider label="Finale Chunks pro Fenster" name="chunks_per_interval_final" value={formState.chunks_per_interval_final} onChange={(e:any, v:number|number[])=>handleSliderChange('chunks_per_interval_final', v as number)} min={5} max={50} step={5} />
+                            <LabeledSlider label="Initiale Chunks pro Fenster" name="chunks_per_interval_initial" value={formState.chunks_per_interval_initial} onChange={(_e: Event, v: number | number[])=>handleSliderChange('chunks_per_interval_initial', v as number)} min={10} max={200} step={10} />
+                            <LabeledSlider label="Finale Chunks pro Fenster" name="chunks_per_interval_final" value={formState.chunks_per_interval_final} onChange={(_e: Event, v: number | number[])=>handleSliderChange('chunks_per_interval_final', v as number)} min={5} max={50} step={5} />
                         </AccordionDetails>
                     </Accordion>
                     <Accordion>
@@ -361,7 +377,7 @@ export const SearchPanel = () => {
                                     <MenuItem value={'gemini-pro'}>Google Gemini 2.5 Pro</MenuItem>
                                 </Select>
                             </FormControl>
-                            <LabeledSlider label="Temperatur" name="llm_assisted_temperature" value={formState.llm_assisted_temperature} onChange={(e:any, v:number|number[])=>handleSliderChange('llm_assisted_temperature', v as number)} min={0} max={1} step={0.05} />
+                            <LabeledSlider label="Temperatur" name="llm_assisted_temperature" value={formState.llm_assisted_temperature} onChange={(_e: Event, v: number | number[])=>handleSliderChange('llm_assisted_temperature', v as number)} min={0} max={1} step={0.05} />
                             <TextField name="llm_assisted_system_prompt_text" label="System-Prompt" fullWidth multiline rows={6} value={formState.llm_assisted_system_prompt_text} onChange={handleFormChange} />
                         </AccordionDetails>
                     </Accordion>
