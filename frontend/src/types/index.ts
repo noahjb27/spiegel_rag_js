@@ -9,7 +9,7 @@ export interface ChunkMetadata {
     Datum?: string;
     Jahrgang?: number;
     URL?: string;
-    [key: string]: any; // Allows for other dynamic metadata keys
+    [key: string]: unknown; // Allows for other dynamic metadata keys
 }
 
 export interface Chunk {
@@ -27,7 +27,7 @@ export interface SearchResults {
     metadata: {
         search_time: number;
         total_chunks_found: number;
-        [key: string]: any;
+        [key: string]: unknown;
     };
 }
 
@@ -36,7 +36,7 @@ export interface AnalysisResult {
     metadata: {
         analysis_time: number;
         model_used: string;
-        [key: string]: any;
+        [key: string]: unknown;
     };
 }
 
@@ -54,12 +54,12 @@ export interface AppState {
 
     // Actions (functions)
     setActiveTab: (tabIndex: number) => void;
-    performSearch: (searchType: 'standard' | 'llm-assisted', params: any) => Promise<void>;
+    performSearch: (searchType: 'standard' | 'llm-assisted', params: unknown) => Promise<void>;
     toggleChunkSelection: (chunkId: number) => void;
     selectAllChunks: () => void;
     deselectAllChunks: () => void;
     transferChunksForAnalysis: () => void;
-    performAnalysis: (analysisParams: any) => Promise<void>;
+    performAnalysis: (analysisParams: unknown) => Promise<void>;
     downloadResults: (format: 'csv' | 'json') => Promise<void>;
 }
 

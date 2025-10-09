@@ -5,7 +5,7 @@
 'use client';
 
 import React from 'react';
-import { Box, Paper, Typography, Divider, List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
+import { Paper, Typography, Divider, List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
 import { CheckCircleOutline } from '@mui/icons-material';
 
 export const InfoPanel = () => {

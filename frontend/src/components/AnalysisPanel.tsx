@@ -4,16 +4,15 @@
 // ==============================================================================
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     Box, Paper, Typography, Button, CircularProgress, Accordion,
     AccordionSummary, AccordionDetails, TextField, Alert, List,
-    ListItem, ListItemIcon, ListItemText, Collapse, Select,
-    MenuItem, InputLabel, FormControl, RadioGroup, Radio, FormControlLabel,
+    ListItem, ListItemIcon, FormControl, RadioGroup, Radio, FormControlLabel,
     Slider
 } from '@mui/material';
 import {
-    ExpandMore as ExpandMoreIcon, Science as ScienceIcon, Article as ArticleIcon
+    ExpandMore as ExpandMoreIcon, Science as ScienceIcon
 } from '@mui/icons-material';
 import { useAppStore } from '@/store/useAppStore';
 import { AnalysisResult } from '@/types';

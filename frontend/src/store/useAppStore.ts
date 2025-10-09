@@ -41,9 +41,9 @@ export const useAppStore = create<AppState>((set, get) => ({
                 isSearching: false,
                 selectedChunkIds: chunksWithIds.map(c => c.id), // Select all by default
             });
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Search failed:", err);
-            set({ searchError: err.response?.data?.error || 'An unexpected error occurred.', isSearching: false });
+            set({ searchError: 'An unexpected error occurred.', isSearching: false });
         }
     },
 
@@ -84,15 +84,17 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({ isAnalyzing: true, analysisError: null, analysisResult: null });
         try {
             // Remove client-side `id` before sending to backend
-            const payload = {
-                ...analysisParams,
-                chunks_to_analyze: chunksToAnalyze.map(({id, ...rest}: Chunk) => rest),
+            const payload: Record<string, unknown> = {
+                ...(typeof analysisParams === 'object' && analysisParams !== null
+                    ? (analysisParams as Record<string, unknown>)
+                    : {}),
+                chunks_to_analyze: chunksToAnalyze.map(({ id: _id, ...rest }: Chunk) => rest),
             };
             const response = await apiService.post('/api/search/analyze', payload);
             set({ analysisResult: response.data, isAnalyzing: false });
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Analysis failed:", err);
-            set({ analysisError: err.response?.data?.error || 'An unexpected error occurred.', isAnalyzing: false });
+            set({ analysisError: 'An unexpected error occurred.', isAnalyzing: false });
         }
     },
     

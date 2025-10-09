@@ -6,13 +6,13 @@
 
 import React, { useState } from 'react';
 import {
-    Box, Paper, Typography, TextField, Button, CircularProgress, 
+    Box, Paper, Typography, TextField, Button,
     Accordion, AccordionSummary, AccordionDetails, Alert,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Slider, FormControl, InputLabel, Select, MenuItem
+    Slider
 } from '@mui/material';
 import {
-    ExpandMore as ExpandMoreIcon, Search as SearchIcon, AutoFixHigh as AutoFixHighIcon
+    ExpandMore as ExpandMoreIcon, Search as SearchIcon
 } from '@mui/icons-material';
 import apiService from '@/lib/api';
 import { KeywordAnalysisSkeleton } from './SkeletonLoader';
@@ -51,9 +51,9 @@ export const KeywordAnalysisPanel = () => {
                 }
             });
             setResults(response.data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Keyword analysis failed:', err);
-            setError(err.response?.data?.error || 'Fehler bei der Schlüsselwort-Analyse.');
+            setError('Fehler bei der Schlüsselwort-Analyse.');
         } finally {
             setIsLoading(false);
         }
@@ -150,7 +150,7 @@ export const KeywordAnalysisPanel = () => {
                     <Accordion defaultExpanded sx={{ borderRadius: 2 }}>
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                             <Typography variant="h6" sx={{ fontWeight: 500 }}>
-                                📊 Ergebnisse für "{searchWord}" ({Object.values(results)[0]?.length || 0} ähnliche Wörter)
+                                📊 Ergebnisse für {`"${searchWord}"`} ({Object.values(results)[0]?.length || 0} ähnliche Wörter)
                             </Typography>
                         </AccordionSummary>
                         <AccordionDetails>
@@ -225,7 +225,7 @@ export const KeywordAnalysisPanel = () => {
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
                                     Diese ähnlichen Wörter können Sie in booleschen Suchausdrücken verwenden, 
-                                    um Ihre Suche zu erweitern. Beispiel: "mauer OR grenze OR wall" für eine breitere Suche.
+                                    um Ihre Suche zu erweitern. Beispiel: {`"mauer OR grenze OR wall"`} für eine breitere Suche.
                                 </Typography>
                             </Box>
                         </AccordionDetails>
