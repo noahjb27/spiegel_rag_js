@@ -16,7 +16,9 @@ import {
     IndeterminateCheckBox as IndeterminateCheckBoxIcon,
     Download as DownloadIcon, ArrowForward as ArrowForwardIcon,
     OpenInNew as OpenInNewIcon,
-    Timeline as TimelineIcon
+    Timeline as TimelineIcon,
+    ArrowUpward as ArrowUpwardIcon,
+    ArrowDownward as ArrowDownwardIcon
 } from '@mui/icons-material';
 import { useAppStore } from '@/store/useAppStore';
 import { Chunk } from '@/types';
@@ -36,7 +38,7 @@ const parseDateSafely = (dateStr: string | undefined): number => {
 };
 
 // Timeline visualization component
-const TimelineVisualization = ({ chunks }: { chunks: Chunk[] }) => {
+const TimelineVisualization = ({ chunks, yearStart, yearEnd }: { chunks: Chunk[]; yearStart?: number; yearEnd?: number }) => {
     const MIN_YEAR = 1948;
     const MAX_YEAR = 1979;
 
@@ -56,6 +58,11 @@ const TimelineVisualization = ({ chunks }: { chunks: Chunk[] }) => {
     const maxCount = Math.max(...Object.values(yearCounts), 1);
     const years = Array.from({ length: MAX_YEAR - MIN_YEAR + 1 }, (_, i) => MIN_YEAR + i);
 
+    // Use provided filter values or fall back to actual data range
+    const displayYearStart = yearStart ?? MIN_YEAR;
+    const displayYearEnd = yearEnd ?? MAX_YEAR;
+    const yearSpan = displayYearEnd - displayYearStart + 1;
+
     return (
         <Paper sx={{
             p: 2,
@@ -70,32 +77,25 @@ const TimelineVisualization = ({ chunks }: { chunks: Chunk[] }) => {
                 </Typography>
             </Box>
 
-            <Box sx={{
-                display: 'flex',
-                alignItems: 'flex-end',
-                gap: { xs: 0.25, sm: 0.5 },
-                height: 80,
-                px: 1
-            }}>
-                {years.map(year => {
-                    const count = yearCounts[year];
-                    const height = maxCount > 0 ? (count / maxCount) * 60 : 0;
-                    const isDecade = year % 10 === 0;
+            <Box sx={{ position: 'relative' }}>
+                {/* Bar chart container */}
+                <Box sx={{
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    gap: { xs: 0.25, sm: 0.5 },
+                    height: 60,
+                    px: 1,
+                    mb: 2
+                }}>
+                    {years.map(year => {
+                        const count = yearCounts[year];
+                        const height = maxCount > 0 ? (count / maxCount) * 60 : 0;
 
-                    return (
-                        <Box
-                            key={year}
-                            sx={{
-                                flex: 1,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                gap: 0.5
-                            }}
-                        >
+                        return (
                             <Box
+                                key={year}
                                 sx={{
-                                    width: '100%',
+                                    flex: 1,
                                     height: height,
                                     bgcolor: count > 0 ? 'primary.main' : 'rgba(255, 255, 255, 0.1)',
                                     borderRadius: '2px 2px 0 0',
@@ -105,29 +105,50 @@ const TimelineVisualization = ({ chunks }: { chunks: Chunk[] }) => {
                                         transform: 'scaleY(1.1)',
                                     },
                                     cursor: count > 0 ? 'pointer' : 'default',
-                                    position: 'relative'
                                 }}
                                 title={`${year}: ${count} Quelle${count !== 1 ? 'n' : ''}`}
                             />
-                            {isDecade && (
-                                <Typography
-                                    variant="caption"
-                                    sx={{
-                                        fontSize: { xs: '0.6rem', sm: '0.7rem' },
-                                        fontWeight: 'bold',
-                                        color: 'text.secondary'
-                                    }}
-                                >
-                                    {year}
-                                </Typography>
-                            )}
-                        </Box>
-                    );
-                })}
+                        );
+                    })}
+                </Box>
+
+                {/* Year labels container - separate from bars */}
+                <Box sx={{
+                    display: 'flex',
+                    gap: { xs: 0.25, sm: 0.5 },
+                    px: 1
+                }}>
+                    {years.map(year => {
+                        const isDecade = year % 10 === 0;
+                        return (
+                            <Box
+                                key={year}
+                                sx={{
+                                    flex: 1,
+                                    display: 'flex',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                {isDecade && (
+                                    <Typography
+                                        variant="caption"
+                                        sx={{
+                                            fontSize: { xs: '0.6rem', sm: '0.7rem' },
+                                            fontWeight: 'bold',
+                                            color: 'text.secondary'
+                                        }}
+                                    >
+                                        {year}
+                                    </Typography>
+                                )}
+                            </Box>
+                        );
+                    })}
+                </Box>
             </Box>
 
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, textAlign: 'center' }}>
-                {chunks.length} Quellen über {MAX_YEAR - MIN_YEAR + 1} Jahre (1948-1979)
+                {chunks.length} Quellen über {yearSpan} Jahre ({displayYearStart}-{displayYearEnd})
             </Typography>
         </Paper>
     );
@@ -326,13 +347,18 @@ export const ResultsDisplay = () => {
     const {
         searchResults, isSearching, searchError, selectedChunkIds,
         selectAllChunks, deselectAllChunks,
-        transferChunksForAnalysis, downloadResults
+        transferChunksForAnalysis, downloadResults, searchFormState
     } = useAppStore();
 
     const [sortBy, setSortBy] = useState<SortOption>('relevance');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
     const handleSortChange = (event: SelectChangeEvent<SortOption>) => {
         setSortBy(event.target.value as SortOption);
+    };
+
+    const toggleSortOrder = () => {
+        setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
     };
 
     if (isSearching) {
@@ -351,24 +377,30 @@ export const ResultsDisplay = () => {
     // Sort chunks based on selected option (memoized for performance)
     const sortedChunks = useMemo(() => {
         return [...searchResults.chunks].sort((a, b) => {
+            let comparison = 0;
             switch (sortBy) {
                 case 'relevance':
-                    return b.relevance_score - a.relevance_score;
+                    comparison = b.relevance_score - a.relevance_score;
+                    break;
                 case 'date':
-                    // Parse dates safely and sort (newest first)
+                    // Parse dates safely and sort
                     const dateA = parseDateSafely(a.metadata.Datum);
                     const dateB = parseDateSafely(b.metadata.Datum);
-                    return dateB - dateA;
+                    comparison = dateB - dateA;
+                    break;
                 case 'llm-score':
                     // Sort by LLM score if available, fallback to relevance
                     const scoreA = a.llm_evaluation_score ?? a.relevance_score;
                     const scoreB = b.llm_evaluation_score ?? b.relevance_score;
-                    return scoreB - scoreA;
+                    comparison = scoreB - scoreA;
+                    break;
                 default:
                     return 0;
             }
+            // Reverse comparison if ascending order
+            return sortOrder === 'asc' ? -comparison : comparison;
         });
-    }, [searchResults.chunks, sortBy]);
+    }, [searchResults.chunks, sortBy, sortOrder]);
 
     return (
         <Box sx={{mt: 4}}>
@@ -416,28 +448,43 @@ export const ResultsDisplay = () => {
                                 </Typography>
                             </Box>
 
-                            {/* Sort dropdown */}
-                            <FormControl
-                                size="small"
-                                sx={{
-                                    minWidth: { xs: '100%', sm: 150 },
-                                    '& .MuiOutlinedInput-root': {
-                                        bgcolor: 'rgba(255, 255, 255, 0.05)',
-                                    }
-                                }}
-                            >
-                                <InputLabel id="sort-select-label">Sortieren nach</InputLabel>
-                                <Select
-                                    labelId="sort-select-label"
-                                    value={sortBy}
-                                    label="Sortieren nach"
-                                    onChange={handleSortChange}
+                            {/* Sort controls */}
+                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flex: { xs: 1, sm: 'none' } }}>
+                                <FormControl
+                                    size="small"
+                                    sx={{
+                                        flex: { xs: 1, sm: 'none' },
+                                        minWidth: { sm: 150 },
+                                        '& .MuiOutlinedInput-root': {
+                                            bgcolor: 'rgba(255, 255, 255, 0.05)',
+                                        }
+                                    }}
                                 >
-                                    <MenuItem value="relevance">Relevanz</MenuItem>
-                                    <MenuItem value="date">Datum</MenuItem>
-                                    <MenuItem value="llm-score">LLM-Score</MenuItem>
-                                </Select>
-                            </FormControl>
+                                    <InputLabel id="sort-select-label">Sortieren nach</InputLabel>
+                                    <Select
+                                        labelId="sort-select-label"
+                                        value={sortBy}
+                                        label="Sortieren nach"
+                                        onChange={handleSortChange}
+                                    >
+                                        <MenuItem value="relevance">Relevanz</MenuItem>
+                                        <MenuItem value="date">Datum</MenuItem>
+                                        <MenuItem value="llm-score">LLM-Score</MenuItem>
+                                    </Select>
+                                </FormControl>
+                                <IconButton
+                                    onClick={toggleSortOrder}
+                                    size="small"
+                                    sx={{
+                                        bgcolor: 'rgba(215, 84, 37, 0.1)',
+                                        '&:hover': { bgcolor: 'rgba(215, 84, 37, 0.2)' },
+                                        border: '1px solid rgba(215, 84, 37, 0.3)'
+                                    }}
+                                    title={sortOrder === 'desc' ? 'Absteigend (höchste zuerst)' : 'Aufsteigend (niedrigste zuerst)'}
+                                >
+                                    {sortOrder === 'desc' ? <ArrowDownwardIcon fontSize="small" /> : <ArrowUpwardIcon fontSize="small" />}
+                                </IconButton>
+                            </Box>
 
                             {/* Spacer for desktop */}
                             <Box sx={{ flexGrow: 1, display: { xs: 'none', sm: 'block' } }} />
@@ -503,7 +550,11 @@ export const ResultsDisplay = () => {
                         </Box>
                     </Paper>
 
-                    <TimelineVisualization chunks={searchResults.chunks} />
+                    <TimelineVisualization
+                        chunks={searchResults.chunks}
+                        yearStart={searchFormState.year_start}
+                        yearEnd={searchFormState.year_end}
+                    />
 
                     {sortedChunks.map(chunk => <ChunkItem key={chunk.id} chunk={chunk} />)}
                 </AccordionDetails>

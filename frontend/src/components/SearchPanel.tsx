@@ -123,16 +123,52 @@ export const SearchPanel = () => {
         if (!formState.use_time_intervals) return null;
         const { year_start, year_end, time_interval_size } = formState;
         if (year_start > year_end) return "Startjahr muss vor Endjahr liegen.";
-        
+
         const span = year_end - year_start + 1;
         const num_intervals = Math.ceil(span / time_interval_size);
-        return `Der Zeitraum von ${span} Jahren wird in ${num_intervals} Intervalle à ca. ${time_interval_size} Jahre aufgeteilt.`;
+
+        // Generate actual intervals
+        const intervals: string[] = [];
+        let currentStart = year_start;
+        while (currentStart <= year_end) {
+            const currentEnd = Math.min(currentStart + time_interval_size - 1, year_end);
+            intervals.push(`${currentStart}-${currentEnd}`);
+            currentStart = currentEnd + 1;
+        }
+
+        return {
+            summary: `Der Zeitraum von ${span} Jahren wird in ${num_intervals} Intervalle à ca. ${time_interval_size} Jahre aufgeteilt.`,
+            intervals: intervals
+        };
+    }, [formState]);
+
+    const llmTimeIntervalCalculation = useMemo(() => {
+        if (!formState.llm_assisted_use_time_intervals) return null;
+        const { year_start, year_end, llm_assisted_time_interval_size } = formState;
+        if (year_start > year_end) return "Startjahr muss vor Endjahr liegen.";
+
+        const span = year_end - year_start + 1;
+        const num_intervals = Math.ceil(span / llm_assisted_time_interval_size);
+
+        // Generate actual intervals
+        const intervals: string[] = [];
+        let currentStart = year_start;
+        while (currentStart <= year_end) {
+            const currentEnd = Math.min(currentStart + llm_assisted_time_interval_size - 1, year_end);
+            intervals.push(`${currentStart}-${currentEnd}`);
+            currentStart = currentEnd + 1;
+        }
+
+        return {
+            summary: `Der Zeitraum von ${span} Jahren wird in ${num_intervals} Intervalle à ca. ${llm_assisted_time_interval_size} Jahre aufgeteilt.`,
+            intervals: intervals
+        };
     }, [formState]);
 
     // Responsive rows for multiline text fields
     const theme = useTheme();
     const isXs = useMediaQuery(theme.breakpoints.down('sm'));
-    const retrievalRows = isXs ? 3 : 2;
+    const retrievalRows = isXs ? 5 : 4;
 
     return (
         <Paper elevation={3} sx={{ 
@@ -323,7 +359,22 @@ export const SearchPanel = () => {
                                     {formState.use_time_intervals && (
                                         <>
                                             <LabeledSlider label="Intervall-Größe (Jahre)" name="time_interval_size" value={formState.time_interval_size} onChange={(_e: Event, v: number | number[])=>handleSliderChange('time_interval_size', v as number)} min={1} max={10} step={1} />
-                                            <Alert severity="info" icon={false}>{timeIntervalCalculation}</Alert>
+                                            {timeIntervalCalculation && typeof timeIntervalCalculation === 'object' && (
+                                                <Alert severity="info" icon={false}>
+                                                    <Typography variant="body2" sx={{ mb: 1 }}>
+                                                        {timeIntervalCalculation.summary}
+                                                    </Typography>
+                                                    <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5, color: 'info.dark' }}>
+                                                        Intervalle:
+                                                    </Typography>
+                                                    <Typography variant="body2" sx={{ textAlign: 'center', lineHeight: 1.6 }}>
+                                                        {timeIntervalCalculation.intervals.join(' • ')}
+                                                    </Typography>
+                                                </Alert>
+                                            )}
+                                            {timeIntervalCalculation && typeof timeIntervalCalculation === 'string' && (
+                                                <Alert severity="warning" icon={false}>{timeIntervalCalculation}</Alert>
+                                            )}
                                         </>
                                     )}
                                 </AccordionDetails>
@@ -356,7 +407,25 @@ export const SearchPanel = () => {
                             <LabeledSlider label="Min. Retrieval-Relevanz" name="llm_assisted_min_retrieval_score" value={formState.llm_assisted_min_retrieval_score} onChange={(_e: Event, v: number | number[])=>handleSliderChange('llm_assisted_min_retrieval_score', v as number)} min={0} max={1} step={0.05} />
                             <FormControlLabel control={<Checkbox name="llm_assisted_use_time_intervals" checked={formState.llm_assisted_use_time_intervals} onChange={handleCheckboxChange} />} label="Zeit-Interval-Suche aktivieren" />
                             {formState.llm_assisted_use_time_intervals && (
-                                <LabeledSlider label="Intervall-Größe (Jahre)" name="llm_assisted_time_interval_size" value={formState.llm_assisted_time_interval_size} onChange={(_e: Event, v: number | number[])=>handleSliderChange('llm_assisted_time_interval_size', v as number)} min={1} max={10} step={1} />
+                                <>
+                                    <LabeledSlider label="Intervall-Größe (Jahre)" name="llm_assisted_time_interval_size" value={formState.llm_assisted_time_interval_size} onChange={(_e: Event, v: number | number[])=>handleSliderChange('llm_assisted_time_interval_size', v as number)} min={1} max={10} step={1} />
+                                    {llmTimeIntervalCalculation && typeof llmTimeIntervalCalculation === 'object' && (
+                                        <Alert severity="info" icon={false}>
+                                            <Typography variant="body2" sx={{ mb: 1 }}>
+                                                {llmTimeIntervalCalculation.summary}
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5, color: 'info.dark' }}>
+                                                Intervalle:
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ textAlign: 'center', lineHeight: 1.6 }}>
+                                                {llmTimeIntervalCalculation.intervals.join(' • ')}
+                                            </Typography>
+                                        </Alert>
+                                    )}
+                                    {llmTimeIntervalCalculation && typeof llmTimeIntervalCalculation === 'string' && (
+                                        <Alert severity="warning" icon={false}>{llmTimeIntervalCalculation}</Alert>
+                                    )}
+                                </>
                             )}
                             <LabeledSlider label="Initiale Chunks pro Fenster" name="chunks_per_interval_initial" value={formState.chunks_per_interval_initial} onChange={(_e: Event, v: number | number[])=>handleSliderChange('chunks_per_interval_initial', v as number)} min={10} max={200} step={10} />
                             <LabeledSlider label="Finale Chunks pro Fenster" name="chunks_per_interval_final" value={formState.chunks_per_interval_final} onChange={(_e: Event, v: number | number[])=>handleSliderChange('chunks_per_interval_final', v as number)} min={5} max={50} step={5} />
