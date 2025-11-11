@@ -20,8 +20,38 @@ export const useAppStore = create<AppState>((set, get) => ({
     transferredChunks: [],
     analysisResult: null,
 
+    // Search form state persistence
+    searchFormState: {
+        retrieval_query: '',
+        year_start: 1960,
+        year_end: 1970,
+        chunk_size: 3000,
+        top_k: 10,
+        chunks_per_interval: 5,
+        use_time_intervals: false,
+        time_interval_size: 5,
+        keywords: '',
+        search_in: ['Text'],
+        use_semantic_expansion: true,
+        semantic_expansion_factor: 3,
+        llm_assisted_use_time_intervals: true,
+        llm_assisted_time_interval_size: 5,
+        chunks_per_interval_initial: 50,
+        chunks_per_interval_final: 20,
+        llm_assisted_min_retrieval_score: 0.25,
+        llm_assisted_keywords: '',
+        llm_assisted_search_in: ['Text'],
+        llm_assisted_model: 'hu-llm3',
+        llm_assisted_temperature: 0.2,
+        llm_assisted_system_prompt_text: ''
+    },
+
     // --- ACTIONS ---
     setActiveTab: (tabIndex) => set({ activeTab: tabIndex }),
+
+    updateSearchFormState: (updates) => set((state) => ({
+        searchFormState: { ...state.searchFormState, ...updates }
+    })),
 
     performSearch: async (searchType, params) => {
         set({ isSearching: true, searchError: null, searchResults: null, analysisResult: null, transferredChunks: [] });

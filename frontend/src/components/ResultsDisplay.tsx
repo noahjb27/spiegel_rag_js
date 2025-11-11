@@ -13,7 +13,8 @@ import {
     ExpandMore as ExpandMoreIcon, CheckBox as CheckBoxIcon,
     CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon,
     IndeterminateCheckBox as IndeterminateCheckBoxIcon,
-    Download as DownloadIcon, ArrowForward as ArrowForwardIcon
+    Download as DownloadIcon, ArrowForward as ArrowForwardIcon,
+    OpenInNew as OpenInNewIcon
 } from '@mui/icons-material';
 import { useAppStore } from '@/store/useAppStore';
 import { Chunk } from '@/types';
@@ -54,25 +55,54 @@ const ChunkItem = ({ chunk }: { chunk: Chunk }) => {
                     }}
                 />
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Typography 
-                        variant="h6" 
-                        component="h3" 
+                    <Typography
+                        variant="h6"
+                        component="h3"
                         sx={{
                             fontWeight: 'bold',
                             fontSize: { xs: '1rem', sm: '1.1rem' },
                             lineHeight: 1.3,
-                            mb: 1,
+                            mb: 0.5,
                             color: isSelected ? 'primary.light' : 'text.primary'
                         }}
                     >
                         {chunk.metadata.Artikeltitel || 'Unbekannter Titel'}
                     </Typography>
-                    <Box sx={{ 
-                        display: 'flex', 
+                    {chunk.metadata.Untertitel && (
+                        <Typography
+                            variant="subtitle2"
+                            sx={{
+                                fontSize: { xs: '0.875rem', sm: '0.9rem' },
+                                color: 'text.secondary',
+                                fontStyle: 'italic',
+                                mb: 1
+                            }}
+                        >
+                            {chunk.metadata.Untertitel}
+                        </Typography>
+                    )}
+                    <Box sx={{
+                        display: 'flex',
                         flexDirection: { xs: 'column', sm: 'row' },
                         gap: { xs: 0.5, sm: 2 },
-                        flexWrap: 'wrap'
+                        flexWrap: 'wrap',
+                        mt: 1
                     }}>
+                        {chunk.metadata.Textsorte && (
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                    color: 'info.light',
+                                    fontWeight: 500,
+                                    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                                    px: 1,
+                                    py: 0.25,
+                                    borderRadius: 1
+                                }}
+                            >
+                                📝 {chunk.metadata.Textsorte}
+                            </Typography>
+                        )}
                         <Typography variant="body2" color="text.secondary">
                             📅 {chunk.metadata.Datum || 'N/A'}
                         </Typography>
@@ -87,16 +117,36 @@ const ChunkItem = ({ chunk }: { chunk: Chunk }) => {
                             🎯 Relevanz: {chunk.relevance_score.toFixed(3)}
                         </Typography>
                         {chunk.llm_evaluation_score && (
-                            <Typography 
-                                variant="body2" 
-                                sx={{ 
-                                    color: chunk.llm_evaluation_score > 0.7 ? 'success.main' : 
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                    color: chunk.llm_evaluation_score > 0.7 ? 'success.main' :
                                            chunk.llm_evaluation_score > 0.5 ? 'warning.main' : 'text.secondary',
                                     fontWeight: 500
                                 }}
                             >
                                 🤖 LLM-Score: {chunk.llm_evaluation_score.toFixed(3)}
                             </Typography>
+                        )}
+                        {chunk.metadata.URL && (
+                            <Button
+                                component="a"
+                                href={chunk.metadata.URL as string}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                size="small"
+                                startIcon={<OpenInNewIcon />}
+                                sx={{
+                                    fontSize: '0.75rem',
+                                    textTransform: 'none',
+                                    color: 'primary.light',
+                                    '&:hover': {
+                                        backgroundColor: 'rgba(215, 84, 37, 0.1)'
+                                    }
+                                }}
+                            >
+                                Artikel öffnen
+                            </Button>
                         )}
                     </Box>
                 </Box>
