@@ -92,11 +92,11 @@ class LLMService:
             self.clients["openai-gpt4o"] = {
                 "client": client,
                 "type": "openai",
-                "model_id": "gpt-4o",
+                "model_id": settings.OPENAI_MODEL_NAME,
                 "endpoint": "https://api.openai.com/v1/"
             }
             self.available_models.append("openai-gpt4o")
-            logger.info("✅ OpenAI GPT-4o initialized successfully")
+            logger.info(f"✅ OpenAI {settings.OPENAI_MODEL_NAME} initialized successfully")
             
         except Exception as e:
             logger.error(f"❌ Failed to initialize OpenAI: {e}")

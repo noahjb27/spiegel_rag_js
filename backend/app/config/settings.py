@@ -40,7 +40,11 @@ DEEPSEEK_MODEL_NAME = os.getenv("DEEPSEEK_MODEL_NAME", "deepseek-reasoner")
 
 # Anthropic API Settings
 ANTHROPIC_API_BASE_URL = os.getenv("ANTHROPIC_API_BASE_URL", "https://api.anthropic.com")
-ANTHROPIC_MODEL_NAME = os.getenv("ANTHROPIC_MODEL_NAME", "claude-3-5-sonnet-20241022")
+ANTHROPIC_MODEL_NAME = os.getenv("ANTHROPIC_MODEL_NAME", "claude-haiku-4-5-20251001")
+
+# OpenAI / Gemini model defaults (can be overridden via env)
+OPENAI_MODEL_NAME = os.getenv("OPENAI_MODEL_NAME", "gpt-4.1-2025-04-14")
+GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-2.5-pro")
 
 # =============================================================================
 # PATH SETTINGS
@@ -77,9 +81,9 @@ LLM_DISPLAY_NAMES = {
     "hu-llm1": "HU-LLM 1 (Berlin)",
     "hu-llm3": "HU-LLM 3 (Berlin)", 
     "deepseek-reasoner": "DeepSeek Reasoner (API)",
-    "openai-gpt4o": "OpenAI GPT-4o",
+    "openai-gpt4o": "OpenAI GPT-4.1",
     "gemini-pro": "Google Gemini 2.5 Pro",
-    "anthropic-claude": "Anthropic Claude 3.5 Sonnet"
+    "anthropic-claude": "Anthropic Claude Haiku 4.5"
 }
 
 # Semantic Expansion Settings
@@ -148,7 +152,7 @@ def get_llm_config(model_name: str) -> Dict[str, str]:
         },
         "openai-gpt4o": {
             "type": "openai",
-            "model_id": "gpt-4o",
+            "model_id": "gpt-4.1-2025-04-14",
             "api_key": OPENAI_API_KEY
         },
         "gemini-pro": {

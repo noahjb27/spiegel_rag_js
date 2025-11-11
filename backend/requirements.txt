@@ -19,7 +19,7 @@ torch
 torchvision
 torchaudio
 chromadb
-fasttext
+fasttext-wheel
 pandas
 numpy
 scikit-learn
