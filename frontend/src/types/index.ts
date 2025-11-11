@@ -6,6 +6,8 @@
 
 export interface ChunkMetadata {
     Artikeltitel?: string;
+    Untertitel?: string; // Subtitle
+    Textsorte?: string; // Text type (e.g., "Leserbrief")
     Datum?: string;
     Jahrgang?: number;
     URL?: string;
@@ -40,6 +42,32 @@ export interface AnalysisResult {
     };
 }
 
+// Search form state for persistence across tab switches
+export interface SearchFormState {
+    retrieval_query: string;
+    year_start: number;
+    year_end: number;
+    chunk_size: number;
+    top_k: number;
+    chunks_per_interval: number;
+    use_time_intervals: boolean;
+    time_interval_size: number;
+    keywords: string;
+    search_in: string[];
+    use_semantic_expansion: boolean;
+    semantic_expansion_factor: number;
+    llm_assisted_use_time_intervals: boolean;
+    llm_assisted_time_interval_size: number;
+    chunks_per_interval_initial: number;
+    chunks_per_interval_final: number;
+    llm_assisted_min_retrieval_score: number;
+    llm_assisted_keywords: string;
+    llm_assisted_search_in: string[];
+    llm_assisted_model: string;
+    llm_assisted_temperature: number;
+    llm_assisted_system_prompt_text: string;
+}
+
 // Defines the shape of our global state management store
 export interface AppState {
     activeTab: number;
@@ -51,9 +79,11 @@ export interface AppState {
     analysisError: string | null;
     transferredChunks: Chunk[];
     analysisResult: AnalysisResult | null;
+    searchFormState: SearchFormState;
 
     // Actions (functions)
     setActiveTab: (tabIndex: number) => void;
+    updateSearchFormState: (updates: Partial<SearchFormState>) => void;
     performSearch: (searchType: 'standard' | 'llm-assisted', params: unknown) => Promise<void>;
     toggleChunkSelection: (chunkId: number) => void;
     selectAllChunks: () => void;

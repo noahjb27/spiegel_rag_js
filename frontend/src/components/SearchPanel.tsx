@@ -76,53 +76,31 @@ const LabeledSlider = ({ name, label, value, onChange, hideValue, unit = '', ...
 );
 
 export const SearchPanel = () => {
-    const { performSearch, isSearching } = useAppStore();
-    
+    const { performSearch, isSearching, searchFormState, updateSearchFormState } = useAppStore();
+
     const [searchMode, setSearchMode] = useState<'standard' | 'llm-assisted'>('standard');
     const [keywordPreview, setKeywordPreview] = useState<{data: KeywordPreviewData | null, error: string | null}>({data: null, error: null});
 
-    const [formState, setFormState] = useState({
-        retrieval_query: 'Berichterstattung über die Berliner Mauer',
-        year_start: 1960,
-        year_end: 1970,
-        chunk_size: 3000,
-        top_k: 10,
-        chunks_per_interval: 5,
-        use_time_intervals: false,
-        time_interval_size: 5,
-        keywords: 'mauer AND berlin',
-        search_in: ['Text'],
-        use_semantic_expansion: true,
-        semantic_expansion_factor: 3,
-        llm_assisted_use_time_intervals: true,
-        llm_assisted_time_interval_size: 5,
-        chunks_per_interval_initial: 50,
-        chunks_per_interval_final: 20,
-        llm_assisted_min_retrieval_score: 0.25,
-        llm_assisted_keywords: 'mauer AND berlin',
-        llm_assisted_search_in: ['Text'],
-        llm_assisted_model: 'hu-llm3',
-        llm_assisted_temperature: 0.2,
-        llm_assisted_system_prompt_text: 'Du bewertest Textabschnitte aus SPIEGEL-Artikeln...'
-    });
+    // Use the persisted form state from Zustand store
+    const formState = searchFormState;
 
     const handleFormChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = event.target;
-        setFormState(prev => ({ ...prev, [name!]: value }));
+        updateSearchFormState({ [name!]: value });
     };
-    
+
     const handleSelectChange = (event: SelectChangeEvent<string | string[]>) => {
         const { name, value } = event.target;
-        setFormState(prev => ({ ...prev, [name]: value }));
+        updateSearchFormState({ [name]: value });
     };
 
     const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
          const { name, checked } = event.target;
-         setFormState(prev => ({ ...prev, [name]: checked }));
+         updateSearchFormState({ [name]: checked });
     };
-    
+
     const handleSliderChange = (name: string, value: number | number[]) => {
-        setFormState(prev => ({ ...prev, [name]: value }));
+        updateSearchFormState({ [name]: value });
     };
     
     const handleSearch = () => {
@@ -212,7 +190,13 @@ export const SearchPanel = () => {
             />
             <FormControl fullWidth margin="normal">
                 <InputLabel id="chunk-size-label">Chunking-Größe</InputLabel>
-                <Select<number> labelId="chunk-size-label" name="chunk_size" value={formState.chunk_size} label="Chunking-Größe" onChange={(e) => setFormState(prev => ({...prev, chunk_size: Number(e.target.value)}))}>
+                <Select<number>
+                    labelId="chunk-size-label"
+                    name="chunk_size"
+                    value={formState.chunk_size}
+                    label="Chunking-Größe"
+                    onChange={(e) => updateSearchFormState({ chunk_size: Number(e.target.value) })}
+                >
                     <MenuItem value={500}>500 Zeichen (Präzision)</MenuItem>
                     <MenuItem value={2000}>2000 Zeichen (Balance)</MenuItem>
                     <MenuItem value={3000}>3000 Zeichen (Kontext)</MenuItem>
@@ -248,7 +232,14 @@ export const SearchPanel = () => {
                             <Accordion sx={{mb: 1}}>
                                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>Schlagwort-Filterung</AccordionSummary>
                                 <AccordionDetails sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
-                                    <TextField name="keywords" label="Schlagwörter (boolescher Ausdruck)" value={formState.keywords} onChange={handleFormChange} fullWidth />
+                                    <TextField
+                                        name="keywords"
+                                        label="Schlagwörter (boolescher Ausdruck)"
+                                        value={formState.keywords}
+                                        onChange={handleFormChange}
+                                        placeholder="z.B. mauer AND berlin"
+                                        fullWidth
+                                    />
                                     <FormControlLabel control={<Checkbox name="use_semantic_expansion" checked={formState.use_semantic_expansion} onChange={handleCheckboxChange} />} label="Semantische Erweiterung" />
                                     {formState.use_semantic_expansion && (
                                         <>
@@ -346,7 +337,14 @@ export const SearchPanel = () => {
                     <Accordion defaultExpanded>
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}>Retrieval-Einstellungen</AccordionSummary>
                         <AccordionDetails sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
-                            <TextField name="llm_assisted_keywords" label="Schlagwörter (boolescher Ausdruck)" value={formState.llm_assisted_keywords} onChange={handleFormChange} fullWidth />
+                            <TextField
+                                name="llm_assisted_keywords"
+                                label="Schlagwörter (boolescher Ausdruck)"
+                                value={formState.llm_assisted_keywords}
+                                onChange={handleFormChange}
+                                placeholder="z.B. mauer AND berlin"
+                                fullWidth
+                            />
                             <FormControl fullWidth>
                                 <InputLabel id="llm-assisted-search-in-label">In Feldern suchen</InputLabel>
                                 <Select labelId="llm-assisted-search-in-label" multiple name="llm_assisted_search_in" value={formState.llm_assisted_search_in} label="In Feldern suchen" onChange={handleSelectChange}>
@@ -378,7 +376,16 @@ export const SearchPanel = () => {
                                 </Select>
                             </FormControl>
                             <LabeledSlider label="Temperatur" name="llm_assisted_temperature" value={formState.llm_assisted_temperature} onChange={(_e: Event, v: number | number[])=>handleSliderChange('llm_assisted_temperature', v as number)} min={0} max={1} step={0.05} />
-                            <TextField name="llm_assisted_system_prompt_text" label="System-Prompt" fullWidth multiline rows={6} value={formState.llm_assisted_system_prompt_text} onChange={handleFormChange} />
+                            <TextField
+                                name="llm_assisted_system_prompt_text"
+                                label="System-Prompt"
+                                fullWidth
+                                multiline
+                                rows={6}
+                                value={formState.llm_assisted_system_prompt_text}
+                                onChange={handleFormChange}
+                                placeholder="z.B. Du bewertest Textabschnitte aus SPIEGEL-Artikeln für historische Forschung..."
+                            />
                         </AccordionDetails>
                     </Accordion>
                 </Box>
