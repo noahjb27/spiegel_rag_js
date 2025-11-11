@@ -353,29 +353,8 @@ export const ResultsDisplay = () => {
     const [sortBy, setSortBy] = useState<SortOption>('relevance');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-    const handleSortChange = (event: SelectChangeEvent<SortOption>) => {
-        setSortBy(event.target.value as SortOption);
-    };
-
-    const toggleSortOrder = () => {
-        setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-    };
-
-    if (isSearching) {
-        return <CircularProgress sx={{ display: 'block', margin: '2rem auto' }} />;
-    }
-    if (searchError) {
-        return <Alert severity="error" sx={{mt: 2}}>{searchError}</Alert>;
-    }
-    if (!searchResults) {
-        return <Alert severity="info" sx={{mt: 2}}>Führen Sie eine Suche durch, um Ergebnisse anzuzeigen.</Alert>;
-    }
-    
-    const allSelected = selectedChunkIds.length > 0 && selectedChunkIds.length === searchResults.chunks.length;
-    const someSelected = selectedChunkIds.length > 0 && !allSelected;
-
     // Sort chunks based on selected option (memoized for performance)
-    // IMPORTANT: This must be called before any conditional returns to follow Rules of Hooks
+    // CRITICAL: Must be called BEFORE any conditional returns to follow Rules of Hooks
     const sortedChunks = useMemo(() => {
         if (!searchResults) return [];
         return [...searchResults.chunks].sort((a, b) => {
@@ -402,7 +381,29 @@ export const ResultsDisplay = () => {
             // Reverse comparison if ascending order
             return sortOrder === 'asc' ? -comparison : comparison;
         });
-    }, [searchResults.chunks, sortBy, sortOrder]);
+    }, [searchResults, sortBy, sortOrder]);
+
+    const handleSortChange = (event: SelectChangeEvent<SortOption>) => {
+        setSortBy(event.target.value as SortOption);
+    };
+
+    const toggleSortOrder = () => {
+        setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    };
+
+    // Conditional returns AFTER all hooks
+    if (isSearching) {
+        return <CircularProgress sx={{ display: 'block', margin: '2rem auto' }} />;
+    }
+    if (searchError) {
+        return <Alert severity="error" sx={{mt: 2}}>{searchError}</Alert>;
+    }
+    if (!searchResults) {
+        return <Alert severity="info" sx={{mt: 2}}>Führen Sie eine Suche durch, um Ergebnisse anzuzeigen.</Alert>;
+    }
+    
+    const allSelected = selectedChunkIds.length > 0 && selectedChunkIds.length === searchResults.chunks.length;
+    const someSelected = selectedChunkIds.length > 0 && !allSelected;
 
     return (
         <Box sx={{mt: 4}}>
