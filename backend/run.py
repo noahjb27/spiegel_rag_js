@@ -12,6 +12,7 @@
 # The port is configured in the .flaskenv file to avoid conflicts with React.
 # ==============================================================================
 
+import os
 from app import create_app
 
 app = create_app()
@@ -19,4 +20,6 @@ app = create_app()
 if __name__ == "__main__":
     # This block allows running the app directly with 'python run.py'
     # The 'flask run' command is generally preferred for development.
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    # Read debug mode from environment (defaults to False for safety)
+    debug_mode = os.getenv("DEBUG", "false").lower() == "true"
+    app.run(host='0.0.0.0', port=5001, debug=debug_mode)

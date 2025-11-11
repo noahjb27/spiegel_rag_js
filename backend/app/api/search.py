@@ -8,6 +8,12 @@
 
 import logging
 from flask import Blueprint, request, jsonify, g
+from app.utils import (
+    ValidationError,
+    validate_search_params,
+    validate_llm_assisted_params,
+    validate_analysis_params
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,13 +31,19 @@ def standard_search():
 
     try:
         search_params = request.get_json()
-        if not search_params or not search_params.get('retrieval_query'):
-            return jsonify({"error": "Missing required search parameters or retrieval_query"}), 400
+        if not search_params:
+            return jsonify({"error": "Missing request body"}), 400
+
+        # Validate input parameters
+        validate_search_params(search_params)
 
         logger.info(f"Received standard search request with params: {search_params}")
         results = g.search_service.standard_search(search_params)
         return jsonify(results)
 
+    except ValidationError as ve:
+        logger.warning(f"Validation error in standard search: {ve}")
+        return jsonify({"error": str(ve)}), 400
     except Exception as e:
         logger.error(f"Error during standard search: {e}", exc_info=True)
         return jsonify({"error": "An internal error occurred during search."}), 500
@@ -43,16 +55,22 @@ def llm_assisted_search():
     """
     if not hasattr(g, 'search_service') or g.search_service is None:
         return jsonify({"error": "Search service not available"}), 503
-        
+
     try:
         search_params = request.get_json()
-        if not search_params or not search_params.get('retrieval_query'):
-            return jsonify({"error": "Missing required search parameters or retrieval_query"}), 400
+        if not search_params:
+            return jsonify({"error": "Missing request body"}), 400
+
+        # Validate input parameters
+        validate_llm_assisted_params(search_params)
 
         logger.info(f"Received LLM-assisted search request with params: {search_params}")
         results = g.search_service.llm_assisted_search(search_params)
         return jsonify(results)
 
+    except ValidationError as ve:
+        logger.warning(f"Validation error in LLM-assisted search: {ve}")
+        return jsonify({"error": str(ve)}), 400
     except Exception as e:
         logger.error(f"Error during LLM-assisted search: {e}", exc_info=True)
         return jsonify({"error": "An internal error occurred during LLM-assisted search."}), 500
@@ -67,13 +85,19 @@ def analyze():
 
     try:
         analysis_params = request.get_json()
-        if not analysis_params or not analysis_params.get('user_prompt') or not analysis_params.get('chunks_to_analyze'):
-            return jsonify({"error": "Missing user_prompt or chunks_to_analyze"}), 400
+        if not analysis_params:
+            return jsonify({"error": "Missing request body"}), 400
+
+        # Validate input parameters
+        validate_analysis_params(analysis_params)
 
         logger.info(f"Received analysis request for {len(analysis_params.get('chunks_to_analyze', []))} chunks.")
         results = g.search_service.perform_analysis(analysis_params)
         return jsonify(results)
 
+    except ValidationError as ve:
+        logger.warning(f"Validation error during analysis: {ve}")
+        return jsonify({"error": str(ve)}), 400
     except ValueError as ve:
         logger.warning(f"Value error during analysis: {ve}")
         return jsonify({"error": str(ve)}), 400
