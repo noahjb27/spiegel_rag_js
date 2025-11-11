@@ -475,13 +475,18 @@ Berücksichtige den gesamten Textinhalt für deine Bewertung."""
                                 window_key: str) -> List[Tuple[Tuple[Document, float, float, str], Dict]]:
         results = []
         
+        # Enhanced patterns to handle markdown formatting and various response formats
         patterns = [
-            r'Text (\d+):\s*Score\s*(\d+(?:\.\d+)?)/10\s*[-–]\s*(.+?)(?=Text \d+:|$)',
-            r'Text (\d+):\s*Score\s*(\d+(?:\.\d+)?)\s*[-–]\s*(.+?)(?=Text \d+:|$)',
-            r'Text (\d+):\s*(\d+(?:\.\d+)?)/10\s*[-–]\s*(.+?)(?=Text \d+:|$)',
-            r'Text (\d+):\s*(\d+(?:\.\d+)?)\s*[-–]\s*(.+?)(?=Text \d+:|$)',
-            r'(\d+)\.\s*(\d+(?:\.\d+)?)/10\s*[-–]\s*(.+?)(?=\d+\.|$)',
-            r'(\d+)\.\s*(\d+(?:\.\d+)?)\s*[-–]\s*(.+?)(?=\d+\.|$)'
+            # Pattern for: **Text 1: 10/10** or **Text 1: Score 10/10**
+            r'\*\*Text (\d+):\s*(?:Score\s*)?(\d+(?:\.\d+)?)/10\*\*\s*[-–]?\s*(.+?)(?=\*\*Text \d+:|\Z)',
+            # Pattern for: Text 1: Score 8/10 - Begründung or Text 1: Score 8/10  \nBegründung
+            r'Text (\d+):\s*Score\s*(\d+(?:\.\d+)?)/10\s*[-–]?\s*(.+?)(?=Text \d+:|$)',
+            # Pattern for: Text 1: 8/10 - Begründung
+            r'Text (\d+):\s*(\d+(?:\.\d+)?)/10\s*[-–]?\s*(.+?)(?=Text \d+:|$)',
+            # Pattern for: **Text 1: Briefe**\n**Relevanz-Score: 10/10**
+            r'\*\*Text (\d+):[^\*]*\*\*\s*\*\*Relevanz-Score:\s*(\d+(?:\.\d+)?)/10\*\*\s*(.+?)(?=\*\*Text \d+:|\Z)',
+            # Pattern for numbered list: 1. Score 8/10 or 1. 8/10
+            r'(\d+)\.\s*(?:Score\s*)?(\d+(?:\.\d+)?)/10\s*[-–]?\s*(.+?)(?=\d+\.|$)',
         ]
         
         evaluations = {}
@@ -495,7 +500,26 @@ Berücksichtige den gesamten Textinhalt für deine Bewertung."""
                         text_num = int(match[0])
                         score = float(match[1])
                         explanation = match[2].strip()
+                        
+                        # Clean up markdown formatting and excessive whitespace
+                        explanation = re.sub(r'\*\*([^*]+)\*\*', r'\1', explanation)  # Remove bold
+                        explanation = re.sub(r'\n+', ' ', explanation)  # Replace newlines with spaces
+                        explanation = re.sub(r'\s+', ' ', explanation)  # Normalize whitespace
+                        
+                        # Extract first few sentences if text is very long
+                        sentences = re.split(r'[.!?]+\s+', explanation)
+                        if len(sentences) > 4:
+                            explanation = '. '.join(sentences[:4]) + '.'
+                        
+                        # Remove common prefixes
+                        explanation = re.sub(r'^(Begründung|Erklärung|Bewertung):\s*', '', explanation, flags=re.IGNORECASE)
+                        
+                        explanation = explanation.strip()
+                        if not explanation:
+                            explanation = "LLM-Bewertung extrahiert"
+                        
                         evaluations[text_num] = (score, explanation)
+                        logger.debug(f"Parsed Text {text_num}: Score {score}/10, Explanation: {explanation[:100]}...")
                     except (ValueError, IndexError) as e:
                         logger.warning(f"Failed to parse match {match}: {e}")
                 break
