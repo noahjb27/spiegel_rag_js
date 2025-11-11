@@ -73,7 +73,15 @@ export const useAppStore = create<AppState>((set, get) => ({
             });
         } catch (err: unknown) {
             console.error("Search failed:", err);
-            set({ searchError: 'An unexpected error occurred.', isSearching: false });
+            // Extract meaningful error message from API response
+            let errorMessage = 'An unexpected error occurred.';
+            if (err && typeof err === 'object' && 'response' in err) {
+                const response = (err as { response?: { data?: { error?: string } } }).response;
+                errorMessage = response?.data?.error || errorMessage;
+            } else if (err instanceof Error) {
+                errorMessage = err.message;
+            }
+            set({ searchError: errorMessage, isSearching: false });
         }
     },
 
@@ -124,7 +132,15 @@ export const useAppStore = create<AppState>((set, get) => ({
             set({ analysisResult: response.data, isAnalyzing: false });
         } catch (err: unknown) {
             console.error("Analysis failed:", err);
-            set({ analysisError: 'An unexpected error occurred.', isAnalyzing: false });
+            // Extract meaningful error message from API response
+            let errorMessage = 'An unexpected error occurred.';
+            if (err && typeof err === 'object' && 'response' in err) {
+                const response = (err as { response?: { data?: { error?: string } } }).response;
+                errorMessage = response?.data?.error || errorMessage;
+            } else if (err instanceof Error) {
+                errorMessage = err.message;
+            }
+            set({ analysisError: errorMessage, isAnalyzing: false });
         }
     },
     

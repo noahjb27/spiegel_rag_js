@@ -4,7 +4,7 @@
 // ==============================================================================
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     Box, Paper, Typography, Checkbox, Button, CircularProgress, Accordion,
     AccordionSummary, AccordionDetails, Collapse, IconButton, Alert,
@@ -26,6 +26,13 @@ const extractYear = (dateStr: string | undefined): number | null => {
     if (!dateStr) return null;
     const match = dateStr.match(/\d{4}/);
     return match ? parseInt(match[0]) : null;
+};
+
+// Helper function to safely parse dates
+const parseDateSafely = (dateStr: string | undefined): number => {
+    if (!dateStr) return 0;
+    const timestamp = new Date(dateStr).getTime();
+    return isNaN(timestamp) ? 0 : timestamp;
 };
 
 // Timeline visualization component
@@ -341,25 +348,27 @@ export const ResultsDisplay = () => {
     const allSelected = selectedChunkIds.length > 0 && selectedChunkIds.length === searchResults.chunks.length;
     const someSelected = selectedChunkIds.length > 0 && !allSelected;
 
-    // Sort chunks based on selected option
-    const sortedChunks = [...searchResults.chunks].sort((a, b) => {
-        switch (sortBy) {
-            case 'relevance':
-                return b.relevance_score - a.relevance_score;
-            case 'date':
-                // Parse dates and sort (newest first)
-                const dateA = a.metadata.Datum ? new Date(a.metadata.Datum).getTime() : 0;
-                const dateB = b.metadata.Datum ? new Date(b.metadata.Datum).getTime() : 0;
-                return dateB - dateA;
-            case 'llm-score':
-                // Sort by LLM score if available, fallback to relevance
-                const scoreA = a.llm_evaluation_score ?? a.relevance_score;
-                const scoreB = b.llm_evaluation_score ?? b.relevance_score;
-                return scoreB - scoreA;
-            default:
-                return 0;
-        }
-    });
+    // Sort chunks based on selected option (memoized for performance)
+    const sortedChunks = useMemo(() => {
+        return [...searchResults.chunks].sort((a, b) => {
+            switch (sortBy) {
+                case 'relevance':
+                    return b.relevance_score - a.relevance_score;
+                case 'date':
+                    // Parse dates safely and sort (newest first)
+                    const dateA = parseDateSafely(a.metadata.Datum);
+                    const dateB = parseDateSafely(b.metadata.Datum);
+                    return dateB - dateA;
+                case 'llm-score':
+                    // Sort by LLM score if available, fallback to relevance
+                    const scoreA = a.llm_evaluation_score ?? a.relevance_score;
+                    const scoreB = b.llm_evaluation_score ?? b.relevance_score;
+                    return scoreB - scoreA;
+                default:
+                    return 0;
+            }
+        });
+    }, [searchResults.chunks, sortBy]);
 
     return (
         <Box sx={{mt: 4}}>

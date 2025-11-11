@@ -6,7 +6,7 @@ from .validation import (
     validate_search_params,
     validate_llm_assisted_params,
     validate_analysis_params,
-    sanitize_string
+    normalize_string
 )
 
 __all__ = [
@@ -14,5 +14,5 @@ __all__ = [
     'validate_search_params',
     'validate_llm_assisted_params',
     'validate_analysis_params',
-    'sanitize_string'
+    'normalize_string'
 ]

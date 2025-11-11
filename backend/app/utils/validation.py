@@ -206,25 +206,28 @@ def validate_analysis_params(params: Dict[str, Any]) -> None:
             raise ValidationError("temperature must be between 0 and 2")
 
 
-def sanitize_string(value: str, max_length: Optional[int] = None) -> str:
+def normalize_string(value: str, max_length: Optional[int] = None) -> str:
     """
-    Sanitize a string input by removing potentially dangerous characters.
+    Normalize a string input by trimming whitespace and optionally truncating length.
+
+    Note: This does NOT sanitize against XSS or injection attacks.
+    Use appropriate escaping/sanitization at the presentation layer.
 
     Args:
-        value: String to sanitize
+        value: String to normalize
         max_length: Maximum allowed length (optional)
 
     Returns:
-        Sanitized string
+        Normalized string (trimmed and optionally truncated)
     """
     if not isinstance(value, str):
         return ""
 
     # Strip whitespace
-    sanitized = value.strip()
+    normalized = value.strip()
 
     # Truncate if needed
-    if max_length and len(sanitized) > max_length:
-        sanitized = sanitized[:max_length]
+    if max_length and len(normalized) > max_length:
+        normalized = normalized[:max_length]
 
-    return sanitized
+    return normalized
