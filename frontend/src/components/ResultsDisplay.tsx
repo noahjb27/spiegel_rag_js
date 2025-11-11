@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material';
 import { useAppStore } from '@/store/useAppStore';
 import { Chunk } from '@/types';
+import { ScoreVisualization } from './ScoreVisualization';
 
 // Helper function to extract year from date string
 const extractYear = (dateStr: string | undefined): number | null => {
@@ -361,21 +362,10 @@ export const ResultsDisplay = () => {
         setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
     };
 
-    if (isSearching) {
-        return <CircularProgress sx={{ display: 'block', margin: '2rem auto' }} />;
-    }
-    if (searchError) {
-        return <Alert severity="error" sx={{mt: 2}}>{searchError}</Alert>;
-    }
-    if (!searchResults) {
-        return <Alert severity="info" sx={{mt: 2}}>Führen Sie eine Suche durch, um Ergebnisse anzuzeigen.</Alert>;
-    }
-    
-    const allSelected = selectedChunkIds.length > 0 && selectedChunkIds.length === searchResults.chunks.length;
-    const someSelected = selectedChunkIds.length > 0 && !allSelected;
-
     // Sort chunks based on selected option (memoized for performance)
+    // Must be called before any conditional returns (React Hooks rule)
     const sortedChunks = useMemo(() => {
+        if (!searchResults) return [];
         return [...searchResults.chunks].sort((a, b) => {
             let comparison = 0;
             switch (sortBy) {
@@ -400,7 +390,20 @@ export const ResultsDisplay = () => {
             // Reverse comparison if ascending order
             return sortOrder === 'asc' ? -comparison : comparison;
         });
-    }, [searchResults.chunks, sortBy, sortOrder]);
+    }, [searchResults, sortBy, sortOrder]);
+
+    if (isSearching) {
+        return <CircularProgress sx={{ display: 'block', margin: '2rem auto' }} />;
+    }
+    if (searchError) {
+        return <Alert severity="error" sx={{mt: 2}}>{searchError}</Alert>;
+    }
+    if (!searchResults) {
+        return <Alert severity="info" sx={{mt: 2}}>Führen Sie eine Suche durch, um Ergebnisse anzuzeigen.</Alert>;
+    }
+
+    const allSelected = selectedChunkIds.length > 0 && selectedChunkIds.length === searchResults.chunks.length;
+    const someSelected = selectedChunkIds.length > 0 && !allSelected;
 
     return (
         <Box sx={{mt: 4}}>
@@ -555,6 +558,8 @@ export const ResultsDisplay = () => {
                         yearStart={searchFormState.year_start}
                         yearEnd={searchFormState.year_end}
                     />
+
+                    <ScoreVisualization chunks={searchResults.chunks} />
 
                     {sortedChunks.map(chunk => <ChunkItem key={chunk.id} chunk={chunk} />)}
                 </AccordionDetails>

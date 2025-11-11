@@ -9,16 +9,205 @@ import {
     Box, Paper, Typography, Button, CircularProgress, Accordion,
     AccordionSummary, AccordionDetails, TextField, Alert, List,
     ListItem, ListItemIcon, FormControl, RadioGroup, Radio, FormControlLabel,
-    Slider
+    Slider, Chip, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import {
-    ExpandMore as ExpandMoreIcon, Science as ScienceIcon
+    ExpandMore as ExpandMoreIcon, Science as ScienceIcon,
+    Link as LinkIcon
 } from '@mui/icons-material';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useAppStore } from '@/store/useAppStore';
-import { AnalysisResult } from '@/types';
+import { AnalysisResult, Chunk } from '@/types';
 
-// Enhanced analysis results display with better typography and mobile support
-const AnalysisResultsDisplay = ({ result }: { result: AnalysisResult }) => (
+// Citation component - displays clickable citations with chunk info
+const CitationComponent = ({
+    citationNumber,
+    chunk,
+    onClick
+}: {
+    citationNumber: number;
+    chunk?: Chunk;
+    onClick: () => void;
+}) => {
+    if (!chunk) {
+        return <span>[{citationNumber}]</span>;
+    }
+
+    const title = chunk.metadata.Artikeltitel || 'Unbekannter Titel';
+    const date = chunk.metadata.Datum || 'N/A';
+    const tooltipText = `${title} (${date})`;
+
+    return (
+        <Tooltip title={tooltipText} arrow placement="top">
+            <Chip
+                label={citationNumber}
+                size="small"
+                onClick={onClick}
+                icon={<LinkIcon style={{ fontSize: '0.875rem' }} />}
+                sx={{
+                    fontSize: '0.75rem',
+                    height: '20px',
+                    cursor: 'pointer',
+                    mx: 0.3,
+                    bgcolor: 'primary.main',
+                    color: 'white',
+                    '&:hover': {
+                        bgcolor: 'primary.dark',
+                        transform: 'scale(1.1)',
+                    },
+                    transition: 'all 0.2s'
+                }}
+            />
+        </Tooltip>
+    );
+};
+
+// Modal to display referenced chunk details
+const ChunkReferenceModal = ({
+    chunk,
+    citationNumber,
+    open,
+    onClose
+}: {
+    chunk?: Chunk;
+    citationNumber: number;
+    open: boolean;
+    onClose: () => void;
+}) => {
+    if (!chunk) return null;
+
+    return (
+        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+            <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
+                Referenz [{citationNumber}]: {chunk.metadata.Artikeltitel || 'Unbekannter Titel'}
+            </DialogTitle>
+            <DialogContent sx={{ mt: 2 }}>
+                <Box sx={{ mb: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Typography variant="body2">
+                        <strong>📅 Datum:</strong> {chunk.metadata.Datum || 'N/A'}
+                    </Typography>
+                    {chunk.metadata.Untertitel && (
+                        <Typography variant="body2">
+                            <strong>📝 Untertitel:</strong> {chunk.metadata.Untertitel}
+                        </Typography>
+                    )}
+                    {chunk.metadata.Textsorte && (
+                        <Typography variant="body2">
+                            <strong>📋 Textsorte:</strong> {chunk.metadata.Textsorte}
+                        </Typography>
+                    )}
+                    <Typography variant="body2">
+                        <strong>🎯 Relevanz:</strong> {chunk.relevance_score.toFixed(3)}
+                    </Typography>
+                    {chunk.llm_evaluation_score && (
+                        <Typography variant="body2">
+                            <strong>🤖 LLM-Score:</strong> {chunk.llm_evaluation_score.toFixed(3)}
+                        </Typography>
+                    )}
+                </Box>
+                <Paper
+                    elevation={0}
+                    sx={{
+                        p: 2,
+                        bgcolor: 'rgba(0, 0, 0, 0.05)',
+                        maxHeight: '400px',
+                        overflowY: 'auto',
+                        borderRadius: 2,
+                        border: '1px solid rgba(0, 0, 0, 0.1)'
+                    }}
+                >
+                    <Typography
+                        variant="body2"
+                        sx={{
+                            whiteSpace: 'pre-wrap',
+                            fontFamily: 'Georgia, serif',
+                            lineHeight: 1.6
+                        }}
+                    >
+                        {chunk.content}
+                    </Typography>
+                </Paper>
+            </DialogContent>
+            <DialogActions>
+                {chunk.metadata.URL && (
+                    <Button
+                        href={chunk.metadata.URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        startIcon={<LinkIcon />}
+                    >
+                        Original öffnen
+                    </Button>
+                )}
+                <Button onClick={onClose} variant="contained">
+                    Schließen
+                </Button>
+            </DialogActions>
+        </Dialog>
+    );
+};
+
+// Enhanced analysis results display with citations
+const AnalysisResultsDisplay = ({ result, chunks }: { result: AnalysisResult; chunks: Chunk[] }) => {
+    const [selectedChunk, setSelectedChunk] = useState<{ chunk: Chunk; citationNumber: number } | null>(null);
+
+    // Custom text renderer to handle citations
+    const components = {
+        p: ({ children }: { children?: React.ReactNode }) => {
+            // Process text to find citations
+            const processText = (node: React.ReactNode): React.ReactNode => {
+                if (typeof node === 'string') {
+                    // Match [number] pattern
+                    const parts: React.ReactNode[] = [];
+                    let lastIndex = 0;
+                    const citationRegex = /\[(\d+)\]/g;
+                    let match;
+
+                    while ((match = citationRegex.exec(node)) !== null) {
+                        // Add text before citation
+                        if (match.index > lastIndex) {
+                            parts.push(node.substring(lastIndex, match.index));
+                        }
+
+                        // Add citation component
+                        const citationNumber = parseInt(match[1]);
+                        const chunk = chunks[citationNumber - 1]; // Arrays are 0-indexed
+                        parts.push(
+                            <CitationComponent
+                                key={`citation-${match.index}-${citationNumber}`}
+                                citationNumber={citationNumber}
+                                chunk={chunk}
+                                onClick={() => setSelectedChunk({ chunk, citationNumber })}
+                            />
+                        );
+
+                        lastIndex = match.index + match[0].length;
+                    }
+
+                    // Add remaining text
+                    if (lastIndex < node.length) {
+                        parts.push(node.substring(lastIndex));
+                    }
+
+                    return parts.length > 0 ? parts : node;
+                }
+
+                return node;
+            };
+
+            return (
+                <Typography
+                    component="p"
+                    sx={{ marginBottom: '1em' }}
+                >
+                    {React.Children.map(children, processText)}
+                </Typography>
+            );
+        }
+    };
+
+    return (
     <Paper 
         elevation={8} 
         sx={{
@@ -59,20 +248,58 @@ const AnalysisResultsDisplay = ({ result }: { result: AnalysisResult }) => (
                 bgcolor: 'rgba(255, 255, 255, 0.02)',
                 borderRadius: 2,
                 border: '1px solid rgba(255, 255, 255, 0.1)',
-                mb: 3
-            }}
-        >
-            <Typography 
-                sx={{
-                    whiteSpace: 'pre-wrap', 
-                    fontFamily: 'Georgia, serif', // Better readability for analysis text
+                mb: 3,
+                '& .markdown-content': {
+                    fontFamily: 'Georgia, serif',
                     fontSize: { xs: '0.95rem', sm: '1rem' },
                     lineHeight: 1.7,
-                    color: 'text.primary'
-                }}
-            >
-                {result.answer}
-            </Typography>
+                    color: 'text.primary',
+                    '& p': { marginBottom: '1em' },
+                    '& h1, & h2, & h3, & h4, & h5, & h6': {
+                        marginTop: '1.5em',
+                        marginBottom: '0.5em',
+                        fontWeight: 600
+                    },
+                    '& ul, & ol': {
+                        marginLeft: '1.5em',
+                        marginBottom: '1em'
+                    },
+                    '& li': { marginBottom: '0.5em' },
+                    '& code': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        padding: '0.2em 0.4em',
+                        borderRadius: '3px',
+                        fontSize: '0.9em'
+                    },
+                    '& pre': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        padding: '1em',
+                        borderRadius: '6px',
+                        overflow: 'auto'
+                    },
+                    '& blockquote': {
+                        borderLeft: '4px solid rgba(255, 255, 255, 0.3)',
+                        paddingLeft: '1em',
+                        marginLeft: 0,
+                        fontStyle: 'italic',
+                        color: 'rgba(255, 255, 255, 0.8)'
+                    },
+                    '& a': {
+                        color: 'primary.main',
+                        textDecoration: 'underline',
+                        '&:hover': { color: 'primary.light' }
+                    }
+                }
+            }}
+        >
+            <Box className="markdown-content">
+                <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={components}
+                >
+                    {result.answer}
+                </ReactMarkdown>
+            </Box>
         </Paper>
         <Accordion sx={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -91,8 +318,19 @@ const AnalysisResultsDisplay = ({ result }: { result: AnalysisResult }) => (
                 </Box>
             </AccordionDetails>
         </Accordion>
+
+        {/* Citation Modal */}
+        {selectedChunk && (
+            <ChunkReferenceModal
+                chunk={selectedChunk.chunk}
+                citationNumber={selectedChunk.citationNumber}
+                open={Boolean(selectedChunk)}
+                onClose={() => setSelectedChunk(null)}
+            />
+        )}
     </Paper>
-);
+    );
+};
 
 export const AnalysisPanel = () => {
     const { 
@@ -307,8 +545,8 @@ export const AnalysisPanel = () => {
             </Button>
             
             {analysisError && <Alert severity="error" sx={{mt: 2}}>{analysisError}</Alert>}
-            
-            {analysisResult && <AnalysisResultsDisplay result={analysisResult} />}
+
+            {analysisResult && <AnalysisResultsDisplay result={analysisResult} chunks={transferredChunks} />}
         </Paper>
     );
 };
