@@ -51,8 +51,47 @@ export const InfoPanel = () => {
                 (OpenAI, Google, DeepSeek, Anthropic) für flexible Analysemöglichkeiten.
             </Typography>
             <Typography paragraph>
-                <strong>Skalierung:</strong> Optimiert für bis zu 15+ gleichzeitige Nutzer mit robusten Fehlerbehandlungs- 
+                <strong>Skalierung:</strong> Optimiert für bis zu 15+ gleichzeitige Nutzer mit robusten Fehlerbehandlungs-
                 und Monitoring-Mechanismen.
+            </Typography>
+
+            <Divider sx={{my: 2}} />
+            <Typography variant="h5" gutterBottom>Wichtige Begriffe</Typography>
+
+            <Typography variant="h6" sx={{ mt: 2, mb: 1, fontSize: '1rem', fontWeight: 600 }}>
+                Retrieval-Relevanz
+            </Typography>
+            <Typography paragraph sx={{ fontSize: '0.95rem' }}>
+                Die <strong>Retrieval-Relevanz</strong> wird durch die Ähnlichkeit zwischen Ihrer Suchanfrage und den Textabschnitten berechnet.
+                Grundlage ist die Cosine-Distanz zwischen semantischen Embeddings (Vektordarstellungen) der Texte.
+                Höhere Werte (näher an 1.0) bedeuten größere semantische Ähnlichkeit.
+            </Typography>
+
+            <Typography variant="h6" sx={{ mt: 2, mb: 1, fontSize: '1rem', fontWeight: 600 }}>
+                LLM-Score / KI-Bewertung
+            </Typography>
+            <Typography paragraph sx={{ fontSize: '0.95rem' }}>
+                Bei der <strong>LLM-unterstützten Auswahl</strong> bewertet ein Sprachmodell jeden Textabschnitt zusätzlich auf seine
+                inhaltliche Relevanz für Ihre Forschungsfrage. Der <strong>LLM-Score</strong> (0-10) zeigt diese Bewertung numerisch,
+                während die <strong>KI-Bewertung</strong> eine kurze textuelle Begründung des Modells liefert.
+                Dies hilft, besonders relevante Quellen zu identifizieren.
+            </Typography>
+
+            <Typography variant="h6" sx={{ mt: 2, mb: 1, fontSize: '1rem', fontWeight: 600 }}>
+                Embeddings & Cosine-Distanz
+            </Typography>
+            <Typography paragraph sx={{ fontSize: '0.95rem' }}>
+                <strong>Embeddings</strong> sind hochdimensionale Vektordarstellungen von Texten, die deren semantische Bedeutung erfassen.
+                Die <strong>Cosine-Distanz</strong> misst den Winkel zwischen zwei solchen Vektoren – je kleiner der Winkel, desto ähnlicher
+                die Bedeutung. Diese Technik ermöglicht es, inhaltlich verwandte Texte zu finden, selbst wenn sie unterschiedliche Wörter verwenden.
+            </Typography>
+
+            <Typography variant="h6" sx={{ mt: 2, mb: 1, fontSize: '1rem', fontWeight: 600 }}>
+                Chunks
+            </Typography>
+            <Typography paragraph sx={{ fontSize: '0.95rem' }}>
+                Artikel werden in <strong>Chunks</strong> (Textabschnitte) mit konfigurierbarer Größe (500, 2000 oder 3000 Zeichen) aufgeteilt.
+                Diese Granularität ermöglicht präzisere Suchen und fokussierte Analysen einzelner Textpassagen statt ganzer Artikel.
             </Typography>
         </Paper>
     );

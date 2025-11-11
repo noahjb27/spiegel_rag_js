@@ -7,17 +7,124 @@
 import React, { useState } from 'react';
 import {
     Box, Paper, Typography, Checkbox, Button, CircularProgress, Accordion,
-    AccordionSummary, AccordionDetails, Collapse, IconButton, Alert
+    AccordionSummary, AccordionDetails, Collapse, IconButton, Alert,
+    FormControl, InputLabel, Select, MenuItem, SelectChangeEvent
 } from '@mui/material';
 import {
     ExpandMore as ExpandMoreIcon, CheckBox as CheckBoxIcon,
     CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon,
     IndeterminateCheckBox as IndeterminateCheckBoxIcon,
     Download as DownloadIcon, ArrowForward as ArrowForwardIcon,
-    OpenInNew as OpenInNewIcon
+    OpenInNew as OpenInNewIcon,
+    Timeline as TimelineIcon
 } from '@mui/icons-material';
 import { useAppStore } from '@/store/useAppStore';
 import { Chunk } from '@/types';
+
+// Helper function to extract year from date string
+const extractYear = (dateStr: string | undefined): number | null => {
+    if (!dateStr) return null;
+    const match = dateStr.match(/\d{4}/);
+    return match ? parseInt(match[0]) : null;
+};
+
+// Timeline visualization component
+const TimelineVisualization = ({ chunks }: { chunks: Chunk[] }) => {
+    const MIN_YEAR = 1948;
+    const MAX_YEAR = 1979;
+
+    // Count chunks per year
+    const yearCounts: Record<number, number> = {};
+    for (let year = MIN_YEAR; year <= MAX_YEAR; year++) {
+        yearCounts[year] = 0;
+    }
+
+    chunks.forEach(chunk => {
+        const year = extractYear(chunk.metadata.Datum);
+        if (year && year >= MIN_YEAR && year <= MAX_YEAR) {
+            yearCounts[year]++;
+        }
+    });
+
+    const maxCount = Math.max(...Object.values(yearCounts), 1);
+    const years = Array.from({ length: MAX_YEAR - MIN_YEAR + 1 }, (_, i) => MIN_YEAR + i);
+
+    return (
+        <Paper sx={{
+            p: 2,
+            mb: 2,
+            background: 'linear-gradient(135deg, rgba(215, 84, 37, 0.05) 0%, rgba(178, 176, 105, 0.05) 100%)',
+            border: '1px solid rgba(215, 84, 37, 0.2)'
+        }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <TimelineIcon color="primary" />
+                <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+                    Zeitliche Verteilung der Quellen
+                </Typography>
+            </Box>
+
+            <Box sx={{
+                display: 'flex',
+                alignItems: 'flex-end',
+                gap: { xs: 0.25, sm: 0.5 },
+                height: 80,
+                px: 1
+            }}>
+                {years.map(year => {
+                    const count = yearCounts[year];
+                    const height = maxCount > 0 ? (count / maxCount) * 60 : 0;
+                    const isDecade = year % 10 === 0;
+
+                    return (
+                        <Box
+                            key={year}
+                            sx={{
+                                flex: 1,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: 0.5
+                            }}
+                        >
+                            <Box
+                                sx={{
+                                    width: '100%',
+                                    height: height,
+                                    bgcolor: count > 0 ? 'primary.main' : 'rgba(255, 255, 255, 0.1)',
+                                    borderRadius: '2px 2px 0 0',
+                                    transition: 'all 0.2s',
+                                    '&:hover': {
+                                        bgcolor: count > 0 ? 'primary.light' : 'rgba(255, 255, 255, 0.2)',
+                                        transform: 'scaleY(1.1)',
+                                    },
+                                    cursor: count > 0 ? 'pointer' : 'default',
+                                    position: 'relative'
+                                }}
+                                title={`${year}: ${count} Quelle${count !== 1 ? 'n' : ''}`}
+                            />
+                            {isDecade && (
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontSize: { xs: '0.6rem', sm: '0.7rem' },
+                                        fontWeight: 'bold',
+                                        color: 'text.secondary'
+                                    }}
+                                >
+                                    {year}
+                                </Typography>
+                            )}
+                        </Box>
+                    );
+                })}
+            </Box>
+
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, textAlign: 'center' }}>
+                {chunks.length} Quellen über {MAX_YEAR - MIN_YEAR + 1} Jahre (1948-1979)
+            </Typography>
+        </Paper>
+    );
+};
 
 const ChunkItem = ({ chunk }: { chunk: Chunk }) => {
     const { selectedChunkIds, toggleChunkSelection } = useAppStore();
@@ -206,13 +313,21 @@ const ChunkItem = ({ chunk }: { chunk: Chunk }) => {
 };
 
 
+type SortOption = 'relevance' | 'date' | 'llm-score';
+
 export const ResultsDisplay = () => {
-    const { 
-        searchResults, isSearching, searchError, selectedChunkIds, 
-        selectAllChunks, deselectAllChunks, 
-        transferChunksForAnalysis, downloadResults 
+    const {
+        searchResults, isSearching, searchError, selectedChunkIds,
+        selectAllChunks, deselectAllChunks,
+        transferChunksForAnalysis, downloadResults
     } = useAppStore();
-    
+
+    const [sortBy, setSortBy] = useState<SortOption>('relevance');
+
+    const handleSortChange = (event: SelectChangeEvent<SortOption>) => {
+        setSortBy(event.target.value as SortOption);
+    };
+
     if (isSearching) {
         return <CircularProgress sx={{ display: 'block', margin: '2rem auto' }} />;
     }
@@ -225,6 +340,26 @@ export const ResultsDisplay = () => {
     
     const allSelected = selectedChunkIds.length > 0 && selectedChunkIds.length === searchResults.chunks.length;
     const someSelected = selectedChunkIds.length > 0 && !allSelected;
+
+    // Sort chunks based on selected option
+    const sortedChunks = [...searchResults.chunks].sort((a, b) => {
+        switch (sortBy) {
+            case 'relevance':
+                return b.relevance_score - a.relevance_score;
+            case 'date':
+                // Parse dates and sort (newest first)
+                const dateA = a.metadata.Datum ? new Date(a.metadata.Datum).getTime() : 0;
+                const dateB = b.metadata.Datum ? new Date(b.metadata.Datum).getTime() : 0;
+                return dateB - dateA;
+            case 'llm-score':
+                // Sort by LLM score if available, fallback to relevance
+                const scoreA = a.llm_evaluation_score ?? a.relevance_score;
+                const scoreB = b.llm_evaluation_score ?? b.relevance_score;
+                return scoreB - scoreA;
+            default:
+                return 0;
+        }
+    });
 
     return (
         <Box sx={{mt: 4}}>
@@ -271,7 +406,30 @@ export const ResultsDisplay = () => {
                                     {' '} / {searchResults.chunks.length} ausgewählt
                                 </Typography>
                             </Box>
-                            
+
+                            {/* Sort dropdown */}
+                            <FormControl
+                                size="small"
+                                sx={{
+                                    minWidth: { xs: '100%', sm: 150 },
+                                    '& .MuiOutlinedInput-root': {
+                                        bgcolor: 'rgba(255, 255, 255, 0.05)',
+                                    }
+                                }}
+                            >
+                                <InputLabel id="sort-select-label">Sortieren nach</InputLabel>
+                                <Select
+                                    labelId="sort-select-label"
+                                    value={sortBy}
+                                    label="Sortieren nach"
+                                    onChange={handleSortChange}
+                                >
+                                    <MenuItem value="relevance">Relevanz</MenuItem>
+                                    <MenuItem value="date">Datum</MenuItem>
+                                    <MenuItem value="llm-score">LLM-Score</MenuItem>
+                                </Select>
+                            </FormControl>
+
                             {/* Spacer for desktop */}
                             <Box sx={{ flexGrow: 1, display: { xs: 'none', sm: 'block' } }} />
                             
@@ -336,7 +494,9 @@ export const ResultsDisplay = () => {
                         </Box>
                     </Paper>
 
-                    {searchResults.chunks.map(chunk => <ChunkItem key={chunk.id} chunk={chunk} />)}
+                    <TimelineVisualization chunks={searchResults.chunks} />
+
+                    {sortedChunks.map(chunk => <ChunkItem key={chunk.id} chunk={chunk} />)}
                 </AccordionDetails>
              </Accordion>
         </Box>
