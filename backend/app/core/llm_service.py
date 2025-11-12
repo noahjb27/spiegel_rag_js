@@ -31,7 +31,10 @@ class LLMService:
         
         # Initialize OpenAI client if API key is available
         self._init_openai_client()
-        
+
+        # Initialize GPT-5 client if API key is available
+        self._init_gpt5_client()
+
         # Initialize Gemini client if API key is available
         self._init_gemini_client()
         
@@ -79,13 +82,13 @@ class LLMService:
         if not settings.OPENAI_API_KEY or settings.OPENAI_API_KEY == "your_openai_api_key_here":
             logger.info("OpenAI API key not configured, skipping OpenAI initialization")
             return
-            
+
         try:
             client = OpenAI(api_key=settings.OPENAI_API_KEY)
-            
+
             # Test connection with a simple models list call
             client.models.list()
-            
+
             self.clients["openai-gpt4o"] = {
                 "client": client,
                 "type": "openai",
@@ -94,9 +97,33 @@ class LLMService:
             }
             self.available_models.append("openai-gpt4o")
             logger.info(f"✅ OpenAI {settings.OPENAI_MODEL_NAME} initialized successfully")
-            
+
         except Exception as e:
             logger.error(f"❌ Failed to initialize OpenAI: {e}")
+
+    def _init_gpt5_client(self):
+        """Initialize GPT-5 client with Responses API support."""
+        if not settings.OPENAI_API_KEY or settings.OPENAI_API_KEY == "your_openai_api_key_here":
+            logger.info("OpenAI API key not configured, skipping GPT-5 initialization")
+            return
+
+        try:
+            client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+            # Test connection with a simple models list call
+            client.models.list()
+
+            self.clients["openai-gpt5"] = {
+                "client": client,
+                "type": "openai-gpt5",
+                "model_id": "gpt-5",
+                "endpoint": "https://api.openai.com/v1/"
+            }
+            self.available_models.append("openai-gpt5")
+            logger.info("✅ OpenAI GPT-5 initialized successfully (using Responses API)")
+
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize GPT-5: {e}")
 
     def _init_gemini_client(self):
         """Initialize Gemini client if API key is available."""
@@ -253,11 +280,13 @@ class LLMService:
         preprompt: str = "",
         postprompt: str = "",
         stream: bool = False,
-        response_format: Optional[Dict] = None
+        response_format: Optional[Dict] = None,
+        reasoning_effort: Optional[str] = None,
+        verbosity: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Generate a response from the selected LLM.
-        
+
         Args:
             question: User question
             context: Context for the question
@@ -268,7 +297,9 @@ class LLMService:
             postprompt: Text to append to the question
             stream: Whether to stream the response
             response_format: Response format specification
-            
+            reasoning_effort: GPT-5 reasoning effort ("minimal", "low", "medium", "high")
+            verbosity: GPT-5 verbosity level ("low", "medium", "high")
+
         Returns:
             Dict containing response text, model info, and metadata
         """
@@ -302,6 +333,11 @@ class LLMService:
                 return self._generate_openai_response(
                     client_info, prompt, system_prompt, temperature, model, response_format
                 )
+            elif client_type == "openai-gpt5":
+                return self._generate_gpt5_response(
+                    client_info, prompt, system_prompt, temperature, model,
+                    reasoning_effort, verbosity
+                )
             elif client_type == "gemini":
                 return self._generate_gemini_response(
                     client_info, prompt, system_prompt, temperature, model
@@ -316,7 +352,7 @@ class LLMService:
                 )
             else:
                 raise ValueError(f"Unsupported client type: {client_type}")
-                
+
         except Exception as e:
             logger.error(f"Error generating response with {model}: {e}")
             raise
@@ -356,18 +392,18 @@ class LLMService:
         }
 
     def _generate_openai_response(
-        self, 
-        client_info: Dict, 
-        prompt: str, 
-        system_prompt: str, 
-        temperature: float, 
+        self,
+        client_info: Dict,
+        prompt: str,
+        system_prompt: str,
+        temperature: float,
         model: str,
         response_format: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """Generate response using OpenAI."""
         client = client_info["client"]
         model_id = client_info["model_id"]
-        
+
         # Build request parameters
         request_params = {
             "messages": [
@@ -377,13 +413,13 @@ class LLMService:
             "model": model_id,
             "temperature": temperature
         }
-            
+
         # Add response_format if specified
         if response_format:
             request_params["response_format"] = response_format
-        
+
         chat_completion = client.chat.completions.create(**request_params)
-        
+
         return {
             "text": chat_completion.choices[0].message.content,
             "model": model,
@@ -391,6 +427,63 @@ class LLMService:
             "provider": "openai",
             "endpoint": client_info["endpoint"],
             "metadata": chat_completion.model_dump()
+        }
+
+    def _generate_gpt5_response(
+        self,
+        client_info: Dict,
+        prompt: str,
+        system_prompt: str,
+        temperature: float,
+        model: str,
+        reasoning_effort: Optional[str] = None,
+        verbosity: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Generate response using GPT-5 Responses API with reasoning and verbosity controls."""
+        client = client_info["client"]
+        model_id = client_info["model_id"]
+
+        # Build request parameters for Responses API
+        request_params = {
+            "model": model_id,
+            "input": prompt,
+            "instructions": system_prompt,  # System prompt becomes 'instructions'
+        }
+
+        # Add reasoning effort parameter if specified
+        if reasoning_effort and reasoning_effort in ["minimal", "low", "medium", "high"]:
+            request_params["reasoning"] = {"effort": reasoning_effort}
+
+        # Add verbosity parameter if specified
+        if verbosity and verbosity in ["low", "medium", "high"]:
+            request_params["text"] = {"verbosity": verbosity}
+
+        # Call the new Responses API
+        response = client.responses.create(**request_params)
+
+        # Extract response text and reasoning content if available
+        response_text = response.output_text
+        reasoning_content = getattr(response, 'reasoning_content', None)
+
+        # Build metadata
+        metadata = {
+            "reasoning_effort": reasoning_effort,
+            "verbosity": verbosity,
+            "has_reasoning": reasoning_content is not None
+        }
+
+        # Try to get usage information if available
+        if hasattr(response, 'usage'):
+            metadata['usage'] = response.usage
+
+        return {
+            "text": response_text,
+            "model": model,
+            "model_id": model_id,
+            "provider": "openai-gpt5",
+            "endpoint": client_info["endpoint"],
+            "reasoning_content": reasoning_content,  # Include reasoning for download
+            "metadata": metadata
         }
 
     def _generate_gemini_response(

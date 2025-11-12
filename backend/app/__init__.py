@@ -9,9 +9,12 @@
 
 import os
 import logging
+import atexit
 from flask import Flask, g
 from flask_cors import CORS
+from apscheduler.schedulers.background import BackgroundScheduler
 from .services.search_service import SearchService
+from .services.trace_service import get_trace_service
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -35,6 +38,23 @@ def create_app():
     except Exception as e:
         logger.error(f"❌ CRITICAL: Failed to initialize SearchService: {e}", exc_info=True)
         search_service_instance = None
+
+    # --- Initialize Trace Cleanup Scheduler ---
+    # Run cleanup every 30 minutes to remove old trace files
+    def cleanup_old_traces():
+        try:
+            trace_service = get_trace_service()
+            trace_service.cleanup_old_traces()
+        except Exception as e:
+            logger.error(f"Error during scheduled trace cleanup: {e}", exc_info=True)
+
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(func=cleanup_old_traces, trigger="interval", minutes=30)
+    scheduler.start()
+    logger.info("✅ Trace cleanup scheduler started (runs every 30 minutes)")
+
+    # Shut down the scheduler when exiting the app
+    atexit.register(lambda: scheduler.shutdown())
         
     # --- Attach Service to Each Request ---
     # This is the crucial fix. This function runs before every request.

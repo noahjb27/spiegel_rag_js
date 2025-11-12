@@ -74,14 +74,15 @@ MAX_YEAR = 1979
 DEFAULT_LLM_MODEL = os.getenv("DEFAULT_LLM_MODEL", "hu-llm3")
 
 # Available LLM models
-AVAILABLE_LLM_MODELS = ["hu-llm1", "hu-llm3", "deepseek-reasoner", "openai-gpt4o", "gemini-pro", "anthropic-claude"]
+AVAILABLE_LLM_MODELS = ["hu-llm1", "hu-llm3", "deepseek-reasoner", "openai-gpt4o", "openai-gpt5", "gemini-pro", "anthropic-claude"]
 
 # LLM Display Names for UI - UPDATED terminology
 LLM_DISPLAY_NAMES = {
     "hu-llm1": "HU-LLM 1 (Berlin)",
-    "hu-llm3": "HU-LLM 3 (Berlin)", 
+    "hu-llm3": "HU-LLM 3 (Berlin)",
     "deepseek-reasoner": "DeepSeek Reasoner (API)",
     "openai-gpt4o": "OpenAI GPT-4.1",
+    "openai-gpt5": "OpenAI GPT-5",
     "gemini-pro": "Google Gemini 2.5 Pro",
     "anthropic-claude": "Anthropic Claude Haiku 4.5"
 }
@@ -153,6 +154,11 @@ def get_llm_config(model_name: str) -> Dict[str, str]:
         "openai-gpt4o": {
             "type": "openai",
             "model_id": "gpt-4.1-2025-04-14",
+            "api_key": OPENAI_API_KEY
+        },
+        "openai-gpt5": {
+            "type": "openai-gpt5",
+            "model_id": "gpt-5",
             "api_key": OPENAI_API_KEY
         },
         "gemini-pro": {

@@ -9,6 +9,7 @@ import os
 from flask import Blueprint, request, jsonify, send_file, after_this_request
 
 from ..services import download_service
+from ..services.trace_service import get_trace_service
 
 logger = logging.getLogger(__name__)
 
@@ -120,3 +121,35 @@ def download_csv():
     except Exception as e:
         logger.error(f"Error during CSV download: {e}", exc_info=True)
         return jsonify({"error": "An internal error occurred during CSV download."}), 500
+
+
+@bp.route('/reasoning-trace/<filename>', methods=['GET'])
+def download_reasoning_trace(filename):
+    """
+    Downloads a saved analysis reasoning trace file.
+    The filename should be provided in the URL path.
+    """
+    try:
+        # Get trace service
+        trace_service = get_trace_service()
+
+        # Get the file path
+        file_path = trace_service.get_trace_path(filename)
+
+        if not file_path:
+            logger.warning(f"Reasoning trace file not found: {filename}")
+            return jsonify({"error": "Reasoning trace file not found"}), 404
+
+        logger.info(f"Sending reasoning trace file for download: {filename}")
+
+        # Send the file (no cleanup needed - will be cleaned by scheduled task)
+        return send_file(
+            file_path,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/json'
+        )
+
+    except Exception as e:
+        logger.error(f"Error during reasoning trace download: {e}", exc_info=True)
+        return jsonify({"error": "An internal error occurred during reasoning trace download."}), 500

@@ -8,6 +8,7 @@
 Flask
 Flask-Cors
 python-dotenv
+APScheduler
 
 # Core RAG and Machine Learning Libraries
 # (Taken from your original project, excluding gradio)

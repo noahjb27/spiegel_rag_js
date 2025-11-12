@@ -88,18 +88,22 @@ class SpiegelRAG:
                 chunks: Optional[List[Document]] = None,
                 model: str = "hu-llm3",
                 system_prompt: Optional[str] = None,
-                temperature: float = 0.3) -> AnalysisResult:
+                temperature: float = 0.3,
+                reasoning_effort: Optional[str] = None,
+                verbosity: Optional[str] = None) -> AnalysisResult:
         """
         Analyze chunks with LLM to answer a question.
         FIXED: Removed openai_api_key parameter
-        
+
         Args:
             question: Question to answer
             chunks: Documents to analyze (uses last search if None)
             model: LLM model to use
             system_prompt: Custom system prompt
             temperature: Generation temperature
-            
+            reasoning_effort: GPT-5 reasoning effort level
+            verbosity: GPT-5 verbosity level
+
         Returns:
             AnalysisResult with answer and metadata
         """
@@ -130,17 +134,33 @@ class SpiegelRAG:
                 context=context,
                 model=model,
                 system_prompt=system_prompt,
-                temperature=temperature
-                )
-            
+                temperature=temperature,
+                reasoning_effort=reasoning_effort,
+                verbosity=verbosity
+            )
+
+            # Build metadata including reasoning parameters
+            analysis_metadata = {
+                "question": question,
+                "chunks_analyzed": len(chunks),
+                "temperature": temperature
+            }
+
+            # Add GPT-5 specific parameters if provided
+            if reasoning_effort:
+                analysis_metadata["reasoning_effort"] = reasoning_effort
+            if verbosity:
+                analysis_metadata["verbosity"] = verbosity
+
+            # Include reasoning content if available
+            if response.get('reasoning_content'):
+                analysis_metadata["has_reasoning_content"] = True
+                analysis_metadata["reasoning_content"] = response['reasoning_content']
+
             return AnalysisResult(
                 answer=response['text'],
                 model=response.get('model', model),
-                metadata={
-                    "question": question,
-                    "chunks_analyzed": len(chunks),
-                    "temperature": temperature
-                }
+                metadata=analysis_metadata
             )
             
         except Exception as e:

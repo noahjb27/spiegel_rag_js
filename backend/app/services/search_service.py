@@ -18,6 +18,7 @@ from ..core.engine import SpiegelRAG
 from ..core.search.strategies import StandardSearchStrategy, SearchConfig
 from ..core.search.enhanced_time_window_strategy import EnhancedTimeWindowSearchStrategy
 from ..core.search.agent_strategy import TimeWindowedAgentStrategy, AgentSearchConfig
+from .trace_service import get_trace_service
 
 logger = logging.getLogger(__name__)
 
@@ -167,25 +168,54 @@ class SearchService:
         if not documents:
             raise ValueError("No chunks provided for analysis.")
 
-        # Call the core analysis engine
+        # Call the core analysis engine with GPT-5 parameters
         analysis_result = self.rag_engine.analyze(
             question=analysis_params.get('user_prompt'),
             chunks=documents,
             model=analysis_params.get('model_selection'),
             system_prompt=analysis_params.get('system_prompt_text'),
-            temperature=analysis_params.get('temperature', 0.3)
+            temperature=analysis_params.get('temperature', 0.3),
+            reasoning_effort=analysis_params.get('reasoning_effort'),
+            verbosity=analysis_params.get('verbosity')
         )
 
         analysis_time = time.time() - start_time
-        
+
+        # Build response metadata
+        response_metadata = {
+            'analysis_time': analysis_time,
+            'model_used': analysis_result.model,
+            'chunks_analyzed_count': len(documents)
+        }
+
+        # Include GPT-5 specific parameters and reasoning content from analysis result
+        if analysis_result.metadata.get('reasoning_effort'):
+            response_metadata['reasoning_effort'] = analysis_result.metadata['reasoning_effort']
+        if analysis_result.metadata.get('verbosity'):
+            response_metadata['verbosity'] = analysis_result.metadata['verbosity']
+        if analysis_result.metadata.get('has_reasoning_content'):
+            response_metadata['has_reasoning_content'] = True
+            response_metadata['reasoning_content'] = analysis_result.metadata['reasoning_content']
+
+        # Save full analysis trace for download
+        try:
+            trace_service = get_trace_service()
+            trace_filename = trace_service.save_analysis_trace(
+                answer=analysis_result.answer,
+                metadata=response_metadata,
+                chunks=analysis_params.get('chunks_to_analyze', []),
+                analysis_params=analysis_params
+            )
+            response_metadata['reasoning_trace_filename'] = trace_filename
+            logger.info(f"Saved analysis trace: {trace_filename}")
+        except Exception as e:
+            logger.error(f"Failed to save analysis trace: {e}")
+            # Don't fail the request if trace saving fails
+
         # Return a structured dictionary
         return {
             'answer': analysis_result.answer,
-            'metadata': {
-                'analysis_time': analysis_time,
-                'model_used': analysis_result.model,
-                'chunks_analyzed_count': len(documents)
-            }
+            'metadata': response_metadata
         }
 
     def expand_keywords(self, expression: str, factor: int) -> Dict[str, List[Dict[str, Any]]]:
