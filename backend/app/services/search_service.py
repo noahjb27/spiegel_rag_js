@@ -10,7 +10,7 @@
 
 import logging
 import time
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List
 from langchain.docstore.document import Document
 
 # Adjust imports to the new structure

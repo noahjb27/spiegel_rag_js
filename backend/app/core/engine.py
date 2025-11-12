@@ -4,7 +4,7 @@ Simplified RAG Engine with clear separation of concerns.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Any
 import logging
 
 from langchain.docstore.document import Document
@@ -192,7 +192,7 @@ class SpiegelRAG:
             parsed = self.embedding_service.parse_boolean_expression(config.keywords)
             
             # Expand terms
-            expanded = self.embedding_service.filter_by_semantic_similarity(
+            self.embedding_service.filter_by_semantic_similarity(
                 parsed, 
                 expansion_factor=5
             )

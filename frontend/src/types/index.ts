@@ -38,9 +38,6 @@ export interface AnalysisResult {
     metadata: {
         analysis_time: number;
         model_used: string;
-        reasoning_trace_filename?: string;
-        reasoning_effort?: string;
-        verbosity?: string;
         [key: string]: unknown;
     };
 }

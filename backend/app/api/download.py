@@ -46,7 +46,7 @@ def download_json():
                 time.sleep(0.1)  # Brief delay to allow file handle to be released
                 os.remove(file_path)
                 logger.info(f"Cleaned up temporary file: {file_path}")
-            except OSError as e:
+            except OSError:
                 # On Windows, file might still be in use. Try again after delay
                 try:
                     time.sleep(0.5)
@@ -99,7 +99,7 @@ def download_csv():
                 time.sleep(0.1)  # Brief delay to allow file handle to be released
                 os.remove(file_path)
                 logger.info(f"Cleaned up temporary file: {file_path}")
-            except OSError as e:
+            except OSError:
                 # On Windows, file might still be in use. Try again after delay
                 try:
                     time.sleep(0.5)
