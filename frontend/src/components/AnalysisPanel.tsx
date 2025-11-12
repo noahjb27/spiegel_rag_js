@@ -13,12 +13,13 @@ import {
 } from '@mui/material';
 import {
     ExpandMore as ExpandMoreIcon, Science as ScienceIcon,
-    Link as LinkIcon
+    Link as LinkIcon, Download as DownloadIcon
 } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useAppStore } from '@/store/useAppStore';
 import { AnalysisResult, Chunk } from '@/types';
+import apiService from '@/lib/api';
 
 // Citation component - displays clickable citations with chunk info
 const CitationComponent = ({
@@ -151,6 +152,34 @@ const ChunkReferenceModal = ({
 // Enhanced analysis results display with citations
 const AnalysisResultsDisplay = ({ result, chunks }: { result: AnalysisResult; chunks: Chunk[] }) => {
     const [selectedChunk, setSelectedChunk] = useState<{ chunk: Chunk; citationNumber: number } | null>(null);
+    const [isDownloading, setIsDownloading] = useState(false);
+
+    const handleDownloadReasoningTrace = async () => {
+        if (!result.metadata.reasoning_trace_filename) return;
+        
+        setIsDownloading(true);
+        try {
+            const response = await apiService.get(
+                `/api/download/reasoning-trace/${result.metadata.reasoning_trace_filename}`,
+                { responseType: 'blob' }
+            );
+            
+            // Create download link
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', result.metadata.reasoning_trace_filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Failed to download reasoning trace:', error);
+            alert('Fehler beim Herunterladen der Reasoning-Ausgabe');
+        } finally {
+            setIsDownloading(false);
+        }
+    };
 
     // Custom text renderer to handle citations
     const components = {
@@ -198,7 +227,7 @@ const AnalysisResultsDisplay = ({ result, chunks }: { result: AnalysisResult; ch
 
             return (
                 <Typography
-                    component="p"
+                    component="div"
                     sx={{ marginBottom: '1em' }}
                 >
                     {React.Children.map(children, processText)}
@@ -315,6 +344,60 @@ const AnalysisResultsDisplay = ({ result, chunks }: { result: AnalysisResult; ch
                         <Typography variant="body2" sx={{ fontWeight: 'bold', minWidth: 120 }}>⏱️ Analysezeit:</Typography>
                         <Typography variant="body2" color="info.light">{result.metadata.analysis_time.toFixed(2)} Sekunden</Typography>
                     </Box>
+                    
+                    {/* GPT-5 Reasoning Parameters */}
+                    {(result.metadata.reasoning_effort || result.metadata.verbosity) && (
+                        <>
+                            {result.metadata.reasoning_effort && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 'bold', minWidth: 120 }}>🧠 Reasoning Effort:</Typography>
+                                    <Chip 
+                                        label={result.metadata.reasoning_effort} 
+                                        size="small" 
+                                        color="primary" 
+                                        variant="outlined"
+                                    />
+                                </Box>
+                            )}
+                            {result.metadata.verbosity && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 'bold', minWidth: 120 }}>📝 Verbosity:</Typography>
+                                    <Chip 
+                                        label={result.metadata.verbosity} 
+                                        size="small" 
+                                        color="secondary" 
+                                        variant="outlined"
+                                    />
+                                </Box>
+                            )}
+                        </>
+                    )}
+                    
+                    {/* Download Reasoning Trace Button */}
+                    {result.metadata.reasoning_trace_filename && (
+                        <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                startIcon={isDownloading ? <CircularProgress size={16} /> : <DownloadIcon />}
+                                onClick={handleDownloadReasoningTrace}
+                                disabled={isDownloading}
+                                sx={{
+                                    borderColor: 'primary.main',
+                                    color: 'primary.light',
+                                    '&:hover': {
+                                        borderColor: 'primary.light',
+                                        bgcolor: 'rgba(33, 150, 243, 0.1)'
+                                    }
+                                }}
+                            >
+                                {isDownloading ? 'Wird heruntergeladen...' : 'Reasoning-Schritte herunterladen'}
+                            </Button>
+                            <Typography variant="caption" display="block" sx={{ mt: 1, color: 'text.secondary' }}>
+                                💡 Laden Sie die vollständige Reasoning-Ausgabe herunter, um die Denkschritte des Modells nachzuvollziehen
+                            </Typography>
+                        </Box>
+                    )}
                 </Box>
             </AccordionDetails>
         </Accordion>
@@ -343,8 +426,12 @@ export const AnalysisPanel = () => {
         user_prompt: 'Wie wurde die Berliner Mauer in den westdeutschen Medien dargestellt?',
         model_selection: 'hu-llm3',
         system_prompt_text: "Du bist ein erfahrener Historiker mit Expertise in der kritischen Auswertung von SPIEGEL-Artikeln aus den Jahren 1948-1979.\n\n**Hauptaufgabe**: Beantworte die Forschungsfrage präzise und wissenschaftlich fundiert basierend ausschließlich auf den bereitgestellten Textauszügen.\n\n**Methodik**:\n* **Quellentreue**: Nutze ausschließlich die bereitgestellten Textauszüge als Grundlage\n* **Wissenschaftliche Präzision**: Formuliere analytisch und differenziert",
-        temperature: 0.3
+        temperature: 0.3,
+        reasoning_effort: 'medium',
+        verbosity: 'medium'
     });
+
+    const isGPT5Model = params.model_selection.startsWith('openai-gpt5');
 
     const handleParamChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
         const { name, value } = e.target;
@@ -478,10 +565,56 @@ export const AnalysisPanel = () => {
                              <FormControlLabel value="hu-llm3" control={<Radio />} label="HU-LLM 3 (Berlin)" />
                              <FormControlLabel value="deepseek-reasoner" control={<Radio />} label="DeepSeek Reasoner" />
                              <FormControlLabel value="anthropic-claude" control={<Radio />} label="Anthropic Claude 3.5" />
-                             <FormControlLabel value="openai-gpt4o" control={<Radio />} label="OpenAI GPT-4o" />
+                             <FormControlLabel value="openai-gpt4o" control={<Radio />} label="OpenAI GPT-4.1" />
+                             <FormControlLabel value="openai-gpt5" control={<Radio />} label="🧠 GPT-4o Enhanced (Deep Reasoning)" />
+                             <FormControlLabel value="openai-gpt5-mini" control={<Radio />} label="⚡ GPT-4o-mini (Balanced)" />
+                             <FormControlLabel value="openai-gpt5-nano" control={<Radio />} label="🚀 GPT-4o-mini (Fast)" />
                              <FormControlLabel value="gemini-pro" control={<Radio />} label="Google Gemini 2.5 Pro" />
                         </RadioGroup>
                     </FormControl>
+                    
+                    {/* GPT-5 Specific Parameters */}
+                    {isGPT5Model && (
+                        <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(33, 150, 243, 0.1)', borderRadius: 2, border: '1px solid rgba(33, 150, 243, 0.3)' }}>
+                            <Typography variant="subtitle2" color="primary.light" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+                                🧠 Enhanced Reasoning-Parameter (via Prompt Engineering)
+                            </Typography>
+                            <Alert severity="info" sx={{ mb: 2, fontSize: '0.85rem' }}>
+                                Diese Parameter werden durch Prompt-Anpassungen simuliert, da sie noch nicht direkt von der OpenAI API unterstützt werden.
+                            </Alert>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <FormControl>
+                                    <Typography gutterBottom variant="body2" sx={{ fontWeight: 500 }}>
+                                        Reasoning Effort (Denktiefe):
+                                    </Typography>
+                                    <RadioGroup row name="reasoning_effort" value={params.reasoning_effort} onChange={handleParamChange}>
+                                        <FormControlLabel value="minimal" control={<Radio size="small" />} label="Minimal (schnell)" />
+                                        <FormControlLabel value="low" control={<Radio size="small" />} label="Niedrig" />
+                                        <FormControlLabel value="medium" control={<Radio size="small" />} label="Mittel" />
+                                        <FormControlLabel value="high" control={<Radio size="small" />} label="Hoch (tiefe Analyse)" />
+                                    </RadioGroup>
+                                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                                        Steuert, wie intensiv GPT-5 über die Antwort nachdenkt. Höhere Werte = bessere Qualität, aber langsamer.
+                                    </Typography>
+                                </FormControl>
+                                
+                                <FormControl>
+                                    <Typography gutterBottom variant="body2" sx={{ fontWeight: 500 }}>
+                                        Verbosity (Antwortlänge):
+                                    </Typography>
+                                    <RadioGroup row name="verbosity" value={params.verbosity} onChange={handleParamChange}>
+                                        <FormControlLabel value="low" control={<Radio size="small" />} label="Kurz (1-2 Sätze)" />
+                                        <FormControlLabel value="medium" control={<Radio size="small" />} label="Mittel (Absätze)" />
+                                        <FormControlLabel value="high" control={<Radio size="small" />} label="Ausführlich (detailliert)" />
+                                    </RadioGroup>
+                                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                                        Bestimmt die Ausführlichkeit der Antwort unabhängig vom Prompt.
+                                    </Typography>
+                                </FormControl>
+                            </Box>
+                        </Box>
+                    )}
+                    
                     <Box>
                         <Typography gutterBottom variant="body2">Temperatur: <Typography component="span" color="primary.main" sx={{fontWeight: 'bold'}}>{params.temperature}</Typography></Typography>
                         <Slider name="temperature" value={params.temperature} onChange={(e,v) => handleSliderChange('temperature', v as number)} min={0.0} max={1.0} step={0.1} />

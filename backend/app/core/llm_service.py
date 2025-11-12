@@ -2,11 +2,8 @@
 Enhanced LLM service supporting multiple providers: HU-LLM, OpenAI, Gemini, DeepSeek API, and Anthropic.
 """
 import logging
-import requests
-import json
 from typing import Dict, List, Optional, Any
 
-import openai
 from openai import OpenAI
 import google.generativeai as genai
 from app.config import settings
@@ -556,7 +553,7 @@ class LLMService:
                     }
                 elif client_info["type"] == "anthropic":
                     # Test Anthropic connection with minimal request
-                    test_message = client_info["client"].messages.create(
+                    client_info["client"].messages.create(
                         model=client_info["model_id"],
                         max_tokens=1,
                         messages=[{"role": "user", "content": "Hi"}]

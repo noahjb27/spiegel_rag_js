@@ -4,7 +4,7 @@ Input validation utilities for API endpoints.
 Provides validation for search parameters, analysis requests, etc.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 from app.config import settings
 
 

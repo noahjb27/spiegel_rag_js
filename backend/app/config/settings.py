@@ -4,7 +4,7 @@ Enhanced application settings for Spiegel RAG System (1948-1979).
 Updated with new terminology: Heuristik, LLM-Unterstützte Auswahl, Zeit-Interval-Suche
 """
 import os
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 from dotenv import load_dotenv
 
 # Load environment variables

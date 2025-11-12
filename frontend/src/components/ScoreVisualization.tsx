@@ -48,13 +48,27 @@ const ViolinPlot = ({
 
     if (!stats) return null;
 
+    // Calculate dynamic Y-axis range with padding
+    const scoreRange = stats.max - stats.min;
+    const padding = Math.max(0.05, scoreRange * 0.2); // At least 5% padding, or 20% of range
+    const yMin = Math.max(0, stats.min - padding);
+    const yMax = Math.min(1, stats.max + padding);
+    const yRange = yMax - yMin;
+
+    // Helper to map score to Y position
+    const scoreToY = (score: number) => ((yMax - score) / yRange) * 200;
+
     // Create density distribution (simplified violin shape)
     const bins = 10;
     const binCounts = new Array(bins).fill(0);
 
     scores.forEach(score => {
-        const binIndex = Math.min(Math.floor(score * bins), bins - 1);
-        binCounts[binIndex]++;
+        // Map score to bin based on the dynamic range
+        const normalizedScore = (score - yMin) / yRange;
+        const binIndex = Math.min(Math.floor(normalizedScore * bins), bins - 1);
+        if (binIndex >= 0 && binIndex < bins) {
+            binCounts[binIndex]++;
+        }
     });
 
     const maxBinCount = Math.max(...binCounts);
@@ -95,16 +109,19 @@ const ViolinPlot = ({
                     fontSize: '0.7rem',
                     color: 'text.secondary'
                 }}>
-                    <span>1.0</span>
-                    <span>0.5</span>
-                    <span>0.0</span>
+                    <span>{yMax.toFixed(2)}</span>
+                    <span>{((yMax + yMin) / 2).toFixed(2)}</span>
+                    <span>{yMin.toFixed(2)}</span>
                 </Box>
 
                 {/* Violin shape */}
                 <svg width="80" height="200" style={{ overflow: 'visible' }}>
                     {/* Draw violin shape from density distribution */}
                     {binCounts.map((count, i) => {
-                        const y = ((bins - i - 1) / bins) * 200;
+                        const binTop = yMin + ((bins - i) / bins) * yRange;
+                        const binBottom = yMin + ((bins - i - 1) / bins) * yRange;
+                        const y = scoreToY(binTop);
+                        const height = scoreToY(binBottom) - y;
                         const width = (count / maxBinCount) * maxWidth;
                         const x = 40 - width / 2;
 
@@ -114,7 +131,7 @@ const ViolinPlot = ({
                                 x={x}
                                 y={y}
                                 width={width}
-                                height={200 / bins}
+                                height={height}
                                 fill={color}
                                 opacity={0.6}
                             />
@@ -125,9 +142,9 @@ const ViolinPlot = ({
                     {/* Min-Max line */}
                     <line
                         x1={40}
-                        y1={(1 - stats.min) * 200}
+                        y1={scoreToY(stats.min)}
                         x2={40}
-                        y2={(1 - stats.max) * 200}
+                        y2={scoreToY(stats.max)}
                         stroke={color}
                         strokeWidth={2}
                     />
@@ -135,9 +152,9 @@ const ViolinPlot = ({
                     {/* Q1-Q3 box */}
                     <rect
                         x={30}
-                        y={(1 - stats.q3) * 200}
+                        y={scoreToY(stats.q3)}
                         width={20}
-                        height={(stats.q3 - stats.q1) * 200}
+                        height={scoreToY(stats.q1) - scoreToY(stats.q3)}
                         fill="white"
                         stroke={color}
                         strokeWidth={2}
@@ -147,9 +164,9 @@ const ViolinPlot = ({
                     {/* Median line */}
                     <line
                         x1={25}
-                        y1={(1 - stats.median) * 200}
+                        y1={scoreToY(stats.median)}
                         x2={55}
-                        y2={(1 - stats.median) * 200}
+                        y2={scoreToY(stats.median)}
                         stroke={color}
                         strokeWidth={3}
                     />
@@ -157,7 +174,7 @@ const ViolinPlot = ({
                     {/* Mean marker (circle) */}
                     <circle
                         cx={40}
-                        cy={(1 - stats.mean) * 200}
+                        cy={scoreToY(stats.mean)}
                         r={3}
                         fill={color}
                         stroke="white"

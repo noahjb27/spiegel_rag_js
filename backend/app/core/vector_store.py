@@ -5,7 +5,7 @@ Connects to a remote ChromaDB instance with Ollama embeddings.
 FIXED VERSION - addresses parameter handling and search issues
 """
 import logging
-from typing import Dict, List, Optional, Tuple, Union, Any
+from typing import Dict, List, Optional, Tuple, Any
 
 import chromadb
 from langchain.docstore.document import Document
@@ -104,7 +104,7 @@ class ChromaDBInterface:
         # Clean the keywords parameter safely
         cleaned_keywords = self.clean_parameter(keywords)
         
-        logger.info(f"=== SIMILARITY SEARCH DEBUG ===")
+        logger.info("=== SIMILARITY SEARCH DEBUG ===")
         logger.info(f"Query: '{query}'")
         logger.info(f"Chunk size: {chunk_size}")
         logger.info(f"k: {k}")
@@ -207,7 +207,7 @@ class ChromaDBInterface:
         except Exception as e:
             logger.error(f"Critical error in similarity_search: {e}", exc_info=True)
             # Don't raise, return empty list with detailed error message
-            logger.error(f"SEARCH FAILED COMPLETELY - Check:")
+            logger.error("SEARCH FAILED COMPLETELY - Check:")
             logger.error(f"  1. ChromaDB connection: {settings.CHROMA_DB_HOST}:{settings.CHROMA_DB_PORT}")
             logger.error(f"  2. Collection exists: {self.get_collection_name(chunk_size)}")
             logger.error(f"  3. Ollama embedding service: {settings.OLLAMA_BASE_URL}")

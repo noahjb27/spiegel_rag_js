@@ -354,17 +354,10 @@ export const ResultsDisplay = () => {
     const [sortBy, setSortBy] = useState<SortOption>('relevance');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-    const handleSortChange = (event: SelectChangeEvent<SortOption>) => {
-        setSortBy(event.target.value as SortOption);
-    };
-
-    const toggleSortOrder = () => {
-        setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-    };
-
->>>>>>> 148c06611cb63e60aa2d542e5cce2b4deed18424
     // Sort chunks based on selected option (memoized for performance)
+    // CRITICAL: Must be called BEFORE any conditional returns to follow Rules of Hooks
     const sortedChunks = useMemo(() => {
+        if (!searchResults) return [];
         return [...searchResults.chunks].sort((a, b) => {
             let comparison = 0;
             switch (sortBy) {
@@ -391,6 +384,15 @@ export const ResultsDisplay = () => {
         });
     }, [searchResults, sortBy, sortOrder]);
 
+    const handleSortChange = (event: SelectChangeEvent<SortOption>) => {
+        setSortBy(event.target.value as SortOption);
+    };
+
+    const toggleSortOrder = () => {
+        setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    };
+
+    // Conditional returns AFTER all hooks
     if (isSearching) {
         return <CircularProgress sx={{ display: 'block', margin: '2rem auto' }} />;
     }
