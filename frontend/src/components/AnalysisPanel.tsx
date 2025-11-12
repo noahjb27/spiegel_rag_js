@@ -566,9 +566,7 @@ export const AnalysisPanel = () => {
                              <FormControlLabel value="deepseek-reasoner" control={<Radio />} label="DeepSeek Reasoner" />
                              <FormControlLabel value="anthropic-claude" control={<Radio />} label="Anthropic Claude 3.5" />
                              <FormControlLabel value="openai-gpt4o" control={<Radio />} label="OpenAI GPT-4.1" />
-                             <FormControlLabel value="openai-gpt5" control={<Radio />} label="🧠 GPT-4o Enhanced (Deep Reasoning)" />
-                             <FormControlLabel value="openai-gpt5-mini" control={<Radio />} label="⚡ GPT-4o-mini (Balanced)" />
-                             <FormControlLabel value="openai-gpt5-nano" control={<Radio />} label="🚀 GPT-4o-mini (Fast)" />
+                             <FormControlLabel value="openai-gpt5" control={<Radio />} label="OpenAI GPT-5" />
                              <FormControlLabel value="gemini-pro" control={<Radio />} label="Google Gemini 2.5 Pro" />
                         </RadioGroup>
                     </FormControl>
@@ -577,10 +575,10 @@ export const AnalysisPanel = () => {
                     {isGPT5Model && (
                         <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(33, 150, 243, 0.1)', borderRadius: 2, border: '1px solid rgba(33, 150, 243, 0.3)' }}>
                             <Typography variant="subtitle2" color="primary.light" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
-                                🧠 Enhanced Reasoning-Parameter (via Prompt Engineering)
+                                🧠 GPT-5 Responses API Parameter
                             </Typography>
                             <Alert severity="info" sx={{ mb: 2, fontSize: '0.85rem' }}>
-                                Diese Parameter werden durch Prompt-Anpassungen simuliert, da sie noch nicht direkt von der OpenAI API unterstützt werden.
+                                Diese Parameter steuern das interne Reasoning und die Ausgabelänge direkt über die GPT-5 Responses API.
                             </Alert>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                 <FormControl>
