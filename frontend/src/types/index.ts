@@ -38,6 +38,7 @@ export interface AnalysisResult {
     metadata: {
         analysis_time: number;
         model_used: string;
+        reasoning_trace_filename?: string;
         [key: string]: unknown;
     };
 }
