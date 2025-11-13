@@ -13,12 +13,92 @@ import {
 } from '@mui/material';
 import {
     ExpandMore as ExpandMoreIcon, Science as ScienceIcon,
-    Link as LinkIcon
+    Link as LinkIcon, Download as DownloadIcon
 } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useAppStore } from '@/store/useAppStore';
 import { AnalysisResult, Chunk } from '@/types';
+
+// ============================================================================
+// Smart Citation Detection
+// ============================================================================
+// Detects multiple citation formats and extracts citation numbers
+// Supports: [1], (1), [1.], ¹, Source 1, [Source 1], etc.
+
+interface CitationMatch {
+    index: number;
+    length: number;
+    citationNumber: number;
+    format: string;
+}
+
+const detectCitationFormat = (text: string): 'square-bracket' | 'parenthesis' | 'superscript' | 'mixed' | 'none' => {
+    const patterns = {
+        squareBracket: /\[(\d+)\]/g,
+        parenthesis: /\((\d+)\)/g,
+        superscript: /[¹²³⁴⁵⁶⁷⁸⁹⁰]+/g,
+    };
+
+    const counts = {
+        squareBracket: (text.match(patterns.squareBracket) || []).length,
+        parenthesis: (text.match(patterns.parenthesis) || []).length,
+        superscript: (text.match(patterns.superscript) || []).length,
+    };
+
+    // Determine dominant format
+    if (counts.squareBracket > 2) return 'square-bracket';
+    if (counts.parenthesis > 2) return 'parenthesis';
+    if (counts.superscript > 2) return 'superscript';
+    if (counts.squareBracket + counts.parenthesis + counts.superscript > 2) return 'mixed';
+    return 'none';
+};
+
+const extractCitations = (text: string, format: string): CitationMatch[] => {
+    const matches: CitationMatch[] = [];
+
+    // Define regex patterns for different formats
+    const patterns: Record<string, RegExp> = {
+        'square-bracket': /\[(\d+)\]/g,
+        'parenthesis': /\((\d+)\)/g,
+        'superscript': /[¹²³⁴⁵⁶⁷⁸⁹⁰]+/g,
+        'mixed': /\[(\d+)\]|\((\d+)\)/g,
+    };
+
+    const pattern = patterns[format] || patterns['square-bracket'];
+    let match;
+
+    // Superscript numbers mapping
+    const superscriptMap: Record<string, string> = {
+        '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5',
+        '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁰': '0'
+    };
+
+    while ((match = pattern.exec(text)) !== null) {
+        let citationNumber: number;
+
+        if (format === 'superscript') {
+            // Convert superscript to number
+            const superscriptText = match[0];
+            const numberStr = superscriptText.split('').map(c => superscriptMap[c] || c).join('');
+            citationNumber = parseInt(numberStr, 10);
+        } else {
+            // Extract from capturing group
+            citationNumber = parseInt(match[1] || match[2], 10);
+        }
+
+        if (!isNaN(citationNumber)) {
+            matches.push({
+                index: match.index,
+                length: match[0].length,
+                citationNumber,
+                format: match[0]
+            });
+        }
+    }
+
+    return matches;
+};
 
 // Citation component - displays clickable citations with chunk info
 const CitationComponent = ({
@@ -152,38 +232,45 @@ const ChunkReferenceModal = ({
 const AnalysisResultsDisplay = ({ result, chunks }: { result: AnalysisResult; chunks: Chunk[] }) => {
     const [selectedChunk, setSelectedChunk] = useState<{ chunk: Chunk; citationNumber: number } | null>(null);
 
-    // Custom text renderer to handle citations
+    // Detect citation format from the full answer text
+    const detectedFormat = detectCitationFormat(result.answer);
+
+    // Custom text renderer to handle citations with smart detection
     const components = {
         p: ({ children }: { children?: React.ReactNode }) => {
-            // Process text to find citations
+            // Process text to find citations using smart detection
             const processText = (node: React.ReactNode): React.ReactNode => {
                 if (typeof node === 'string') {
-                    // Match [number] pattern
+                    // Use smart citation detection
+                    const citationMatches = extractCitations(node, detectedFormat);
+
+                    if (citationMatches.length === 0) {
+                        return node; // No citations found
+                    }
+
+                    // Build parts array with citations replaced by components
                     const parts: React.ReactNode[] = [];
                     let lastIndex = 0;
-                    const citationRegex = /\[(\d+)\]/g;
-                    let match;
 
-                    while ((match = citationRegex.exec(node)) !== null) {
+                    citationMatches.forEach((match) => {
                         // Add text before citation
                         if (match.index > lastIndex) {
                             parts.push(node.substring(lastIndex, match.index));
                         }
 
                         // Add citation component
-                        const citationNumber = parseInt(match[1]);
-                        const chunk = chunks[citationNumber - 1]; // Arrays are 0-indexed
+                        const chunk = chunks[match.citationNumber - 1]; // Arrays are 0-indexed
                         parts.push(
                             <CitationComponent
-                                key={`citation-${match.index}-${citationNumber}`}
-                                citationNumber={citationNumber}
+                                key={`citation-${match.index}-${match.citationNumber}`}
+                                citationNumber={match.citationNumber}
                                 chunk={chunk}
-                                onClick={() => setSelectedChunk({ chunk, citationNumber })}
+                                onClick={() => setSelectedChunk({ chunk, citationNumber: match.citationNumber })}
                             />
                         );
 
-                        lastIndex = match.index + match[0].length;
-                    }
+                        lastIndex = match.index + match.length;
+                    });
 
                     // Add remaining text
                     if (lastIndex < node.length) {
@@ -318,6 +405,39 @@ const AnalysisResultsDisplay = ({ result, chunks }: { result: AnalysisResult; ch
                 </Box>
             </AccordionDetails>
         </Accordion>
+
+        {/* Download Full Analysis Button */}
+        {result.metadata.reasoning_trace_filename && (
+            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+                <Button
+                    variant="outlined"
+                    startIcon={<DownloadIcon />}
+                    onClick={() => {
+                        const filename = result.metadata.reasoning_trace_filename;
+                        const downloadUrl = `/api/download/reasoning-trace/${filename}`;
+                        window.location.href = downloadUrl;
+                    }}
+                    sx={{
+                        borderColor: 'success.main',
+                        color: 'success.light',
+                        px: 3,
+                        py: 1.5,
+                        fontWeight: 600,
+                        fontSize: '1rem',
+                        borderWidth: 2,
+                        '&:hover': {
+                            borderColor: 'success.light',
+                            bgcolor: 'rgba(76, 175, 80, 0.1)',
+                            borderWidth: 2,
+                            transform: 'translateY(-2px)',
+                        },
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    Analyse Exportieren
+                </Button>
+            </Box>
+        )}
 
         {/* Citation Modal */}
         {selectedChunk && (

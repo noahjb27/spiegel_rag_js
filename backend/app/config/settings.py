@@ -183,7 +183,10 @@ SYSTEM_PROMPTS = {
 * **Quellentreue**: Nutze ausschließlich die bereitgestellten Textauszüge als Grundlage
 * **Wissenschaftliche Präzision**: Formuliere analytisch und differenziert
 * **Vollständige Integration**: Berücksichtige möglichst viele relevante Textauszüge
-* **Transparente Belege**: Verweise präzise mit [Datum, Artikeltitel]
+* **Transparente Belege**: Verweise auf Quellen durch nummerierte Zitate in eckigen Klammern [1], [2], [3] usw. Die Nummern entsprechen den im Kontext bereitgestellten Textauszügen.
+
+**WICHTIG - Zitierformat**:
+Die Textauszüge sind nummeriert als [1], [2], [3] etc. Verwende IMMER diese exakte Nummerierung in eckigen Klammern, um auf Quellen zu verweisen. Beispiel: "Die Bundesregierung kündigte an [1]..." oder "Laut mehreren Berichten [2][3]..."
 
 **Antwortstruktur**:
 1. Direkte Beantwortung der Forschungsfrage
