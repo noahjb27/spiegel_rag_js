@@ -414,7 +414,8 @@ const AnalysisResultsDisplay = ({ result, chunks }: { result: AnalysisResult; ch
                     startIcon={<DownloadIcon />}
                     onClick={() => {
                         const filename = result.metadata.reasoning_trace_filename;
-                        const downloadUrl = `/api/download/reasoning-trace/${filename}`;
+                        const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5001';
+                        const downloadUrl = `${backendUrl}/api/download/reasoning-trace/${filename}`;
                         window.location.href = downloadUrl;
                     }}
                     sx={{
@@ -463,7 +464,8 @@ export const AnalysisPanel = () => {
         user_prompt: 'Wie wurde die Berliner Mauer in den westdeutschen Medien dargestellt?',
         model_selection: 'hu-llm3',
         system_prompt_text: "Du bist ein erfahrener Historiker mit Expertise in der kritischen Auswertung von SPIEGEL-Artikeln aus den Jahren 1948-1979.\n\n**Hauptaufgabe**: Beantworte die Forschungsfrage präzise und wissenschaftlich fundiert basierend ausschließlich auf den bereitgestellten Textauszügen.\n\n**Methodik**:\n* **Quellentreue**: Nutze ausschließlich die bereitgestellten Textauszüge als Grundlage\n* **Wissenschaftliche Präzision**: Formuliere analytisch und differenziert",
-        temperature: 0.3
+        temperature: 0.3,
+        reasoning_effort: 'medium'
     });
 
     const handleParamChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
@@ -606,6 +608,51 @@ export const AnalysisPanel = () => {
                     <Box>
                         <Typography gutterBottom variant="body2">Temperatur: <Typography component="span" color="primary.main" sx={{fontWeight: 'bold'}}>{params.temperature}</Typography></Typography>
                         <Slider name="temperature" value={params.temperature} onChange={(e,v) => handleSliderChange('temperature', v as number)} min={0.0} max={1.0} step={0.1} />
+                    </Box>
+                    <Box>
+                        <Typography gutterBottom variant="body2" sx={{mb: 1}}>
+                            Reasoning Effort (GPT-5): <Typography component="span" color="primary.main" sx={{fontWeight: 'bold', textTransform: 'capitalize'}}>{params.reasoning_effort}</Typography>
+                        </Typography>
+                        <FormControl fullWidth>
+                            <RadioGroup 
+                                row 
+                                name="reasoning_effort" 
+                                value={params.reasoning_effort} 
+                                onChange={handleParamChange}
+                                sx={{ justifyContent: 'space-between' }}
+                            >
+                                <FormControlLabel 
+                                    value="low" 
+                                    control={<Radio size="small" />} 
+                                    label={
+                                        <Tooltip title="Schnellere Antwort, weniger tiefgreifende Analyse">
+                                            <span>Low</span>
+                                        </Tooltip>
+                                    }
+                                />
+                                <FormControlLabel 
+                                    value="medium" 
+                                    control={<Radio size="small" />} 
+                                    label={
+                                        <Tooltip title="Ausgewogene Balance zwischen Geschwindigkeit und Tiefe">
+                                            <span>Medium</span>
+                                        </Tooltip>
+                                    }
+                                />
+                                <FormControlLabel 
+                                    value="high" 
+                                    control={<Radio size="small" />} 
+                                    label={
+                                        <Tooltip title="Maximale Denktiefe, längere Bearbeitungszeit">
+                                            <span>High</span>
+                                        </Tooltip>
+                                    }
+                                />
+                            </RadioGroup>
+                        </FormControl>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                            Steuert die Denktiefe von GPT-5. Höhere Werte führen zu gründlicherer Analyse, aber längerer Antwortzeit.
+                        </Typography>
                     </Box>
                 </AccordionDetails>
             </Accordion>
