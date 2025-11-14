@@ -427,7 +427,7 @@ class LLMService:
         reasoning_effort: Optional[str] = None,
         verbosity: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Generate response using OpenAI GPT-5 (uses responses.create API)."""
+        """Generate response using OpenAI GPT-5 (uses responses.create API with streaming)."""
         client = client_info["client"]
         model_id = client_info["model_id"]
         
@@ -437,37 +437,127 @@ class LLMService:
         # Build request parameters for GPT-5 responses API
         request_params = {
             "model": model_id,
-            "input": full_input
+            "input": full_input,
+            "stream": True  # Enable streaming to capture detailed reasoning
         }
         
         # Add reasoning parameters if specified
+        # Pass summary: 'detailed' to request the detailed reasoning summary
         if reasoning_effort:
-            request_params["reasoning"] = {"effort": reasoning_effort}
+            request_params["reasoning"] = {
+                "effort": reasoning_effort,
+                "summary": "detailed"  # Request detailed reasoning summary ('concise', 'detailed', or 'auto')
+            }
+        else:
+            # Even if no effort specified, request reasoning with default settings
+            request_params["reasoning"] = {
+                "effort": "medium",
+                "summary": "detailed"
+            }
         
         # Add text verbosity if specified
         if verbosity:
             request_params["text"] = {"verbosity": verbosity}
         
-        # Use the new responses.create() API for GPT-5
-        response = client.responses.create(**request_params)
+        # Use the new responses.create() API for GPT-5 with streaming
+        logger.info(f"Starting GPT-5 streaming response with reasoning_effort={reasoning_effort}, verbosity={verbosity}")
         
-        # Extract reasoning content if available
-        reasoning_content = ""
-        if hasattr(response, 'reasoning_text') and response.reasoning_text:
-            reasoning_content = response.reasoning_text
+        response_stream = client.responses.create(**request_params)
+        
+        # Collect reasoning and output streams separately
+        full_reasoning_log = []
+        final_output_message = []
+        response_metadata = {}
+        
+        try:
+            # Loop over the streaming events as they come in
+            for event in response_stream:
+                event_type = getattr(event, 'type', None)
+                
+                # Log event type at debug level (reduced verbosity)
+                logger.debug(f"Received event type: {event_type}")
+                
+                # Capture reasoning stream - this is the key event type!
+                if event_type == "response.reasoning_summary_text.delta":
+                    # This is a reasoning chunk - the main content we want!
+                    text = getattr(event, 'text', None) or getattr(event, 'delta', None) or ''
+                    if text:
+                        full_reasoning_log.append(str(text))
+                        logger.debug(f"Captured reasoning chunk: {len(str(text))} chars")
+                
+                # Also capture reasoning.done event which may have complete text
+                elif event_type == "response.reasoning_summary_text.done":
+                    text = getattr(event, 'text', None) or ''
+                    if text:
+                        # This might be a summary, add it if we don't have much reasoning yet
+                        logger.debug(f"Captured reasoning done event: {len(str(text))} chars")
+                
+                # Also capture any other reasoning-related events
+                elif event_type and "reasoning" in event_type.lower():
+                    # Try multiple attribute names for the text content
+                    text = (getattr(event, 'text', None) or 
+                           getattr(event, 'delta', None) or 
+                           getattr(event, 'content', None) or '')
+                    if text:
+                        full_reasoning_log.append(str(text))
+                        logger.debug(f"Captured other reasoning event ({event_type}): {len(str(text))} chars")
+                
+                # Capture output stream (final answer) - use the actual event type from OpenAI
+                elif event_type == "response.output_text.delta":
+                    # Try multiple attribute names for the text content
+                    text = (getattr(event, 'delta', None) or 
+                           getattr(event, 'text', None) or 
+                           getattr(event, 'content', None) or '')
+                    if text:
+                        final_output_message.append(str(text))
+                        logger.debug(f"Captured output chunk: {len(str(text))} chars")
+                
+                # Also check for output_text.done which might have complete text
+                elif event_type == "response.output_text.done":
+                    # This might contain the full text
+                    text = (getattr(event, 'text', None) or 
+                           getattr(event, 'output_text', None) or '')
+                    if text and not final_output_message:  # Only use if we haven't collected deltas
+                        final_output_message.append(str(text))
+                        logger.debug(f"Captured complete output: {len(str(text))} chars")
+                
+                # Capture completion metadata
+                elif event_type == "response.completed":
+                    # Stream is finished, capture any final metadata
+                    if hasattr(event, 'usage'):
+                        response_metadata['usage'] = event.usage
+                    if hasattr(event, 'model'):
+                        response_metadata['model_used'] = event.model
+                    
+                    # Response object is available but we've already captured everything from the stream
+                    logger.info("GPT-5 streaming completed")
+                    break
+                
+        except Exception as e:
+            logger.error(f"Error during GPT-5 streaming: {e}", exc_info=True)
+            # If streaming fails, try to salvage what we have
+            if not final_output_message:
+                raise
+        
+        # Combine the collected streams
+        full_reasoning_content = "".join(full_reasoning_log)
+        final_answer = "".join(final_output_message)
+        
+        logger.info(f"GPT-5 response complete - Reasoning: {len(full_reasoning_content)} chars, Output: {len(final_answer)} chars")
         
         result = {
-            "text": response.output_text,
+            "text": final_answer,
             "model": model,
             "model_id": model_id,
             "provider": "openai-gpt5",
             "endpoint": client_info["endpoint"],
-            "metadata": response.model_dump() if hasattr(response, 'model_dump') else {}
+            "metadata": response_metadata
         }
         
-        # Add reasoning content if present
-        if reasoning_content:
-            result["reasoning_content"] = reasoning_content
+        # Add reasoning content if captured
+        if full_reasoning_content:
+            result["reasoning_content"] = full_reasoning_content
+            logger.info(f"Captured {len(full_reasoning_content)} characters of reasoning content")
             
         return result
 
