@@ -277,10 +277,14 @@ class ChromaDBInterface:
             texts_to_search = []
             if "Text" in search_in:
                 texts_to_search.append(doc.page_content.lower())
-            if "Artikeltitel" in search_in and "Artikeltitel" in doc.metadata:
+            # Support both "Titel" (frontend) and "Artikeltitel" (database field)
+            if ("Artikeltitel" in search_in or "Titel" in search_in) and "Artikeltitel" in doc.metadata:
                 texts_to_search.append(doc.metadata.get('Artikeltitel', '').lower())
             if "Schlagworte" in search_in and "Schlagworte" in doc.metadata:
                 texts_to_search.append(doc.metadata.get('Schlagworte', '').lower())
+            # Support "Zusammenfassung" field if present
+            if "Zusammenfassung" in search_in and "Zusammenfassung" in doc.metadata:
+                texts_to_search.append(doc.metadata.get('Zusammenfassung', '').lower())
             
             # Check if document matches keyword criteria
             if self._document_matches_keywords(texts_to_search, parsed_query):
