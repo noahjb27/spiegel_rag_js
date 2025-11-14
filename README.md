@@ -2,6 +2,8 @@
 
 A Retrieval-Augmented Generation (RAG) system for searching and analyzing historical SPIEGEL magazine articles from 1948-1979. This system provides researchers with powerful tools for semantic search and AI-assisted analysis.
 
+📖 **[See FEATURES.md for detailed documentation](./FEATURES.md)** on filtering, citation linking, and streaming responses.
+
 ## 🏗️ System Architecture
 
 ```
