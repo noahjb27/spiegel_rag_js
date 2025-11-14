@@ -1,7 +1,6 @@
-# src/config/settings.py - Updated with new terminology and prompts
 """
-Enhanced application settings for Spiegel RAG System (1948-1979).
-Updated with new terminology: Heuristik, LLM-Unterstützte Auswahl, Zeit-Interval-Suche
+Application settings for Spiegel RAG System (1948-1979).
+Configures API endpoints, model settings, and system prompts for historical research.
 """
 import os
 from typing import Dict, Optional
@@ -76,7 +75,7 @@ DEFAULT_LLM_MODEL = os.getenv("DEFAULT_LLM_MODEL", "hu-llm3")
 # Available LLM models
 AVAILABLE_LLM_MODELS = ["hu-llm1", "hu-llm3", "deepseek-reasoner", "openai-gpt4o", "openai-gpt5", "gemini-pro", "anthropic-claude"]
 
-# LLM Display Names for UI - UPDATED terminology
+# LLM Display Names for UI
 LLM_DISPLAY_NAMES = {
     "hu-llm1": "HU-LLM 1 (Berlin)",
     "hu-llm3": "HU-LLM 3 (Berlin)",

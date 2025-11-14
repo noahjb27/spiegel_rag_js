@@ -96,8 +96,8 @@ class TimeWindowedAgentStrategy(SearchStrategy):
                 if progress_callback:
                     progress = 0.1 + (i / len(time_windows)) * 0.3
                     progress_callback(f"Zeitfenster {window_key}: Texte abrufen...", progress)
-                
-                # Get chunks for this window with UPDATED minimum score
+
+                # Retrieve chunks for this window using configured minimum score
                 window_chunks = self._retrieve_chunks_for_window(
                     config, vector_store, window, 
                     self.agent_config.chunks_per_window_initial,

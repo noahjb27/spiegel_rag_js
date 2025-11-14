@@ -127,7 +127,7 @@ class LLMService:
             
             # Try different model names in order of preference (prioritize 2.5 Pro)
             model_options = [
-                "models/gemini-2.5-pro",            # CHANGED: Added 2.5 Pro as priority
+                "models/gemini-2.5-pro",
                 "models/gemini-2.5-pro-latest", 
                 "models/gemini-2.5-flash",
                 "models/gemini-1.5-pro-latest",      # Fallbacks
@@ -165,7 +165,7 @@ class LLMService:
                 self.clients["gemini-pro"] = {
                     "client": genai,
                     "type": "gemini",
-                    "model_id": "gemini-2.5-pro",  # CHANGED: Updated fallback to 2.5 Pro
+                    "model_id": "gemini-2.5-pro",
                     "endpoint": "https://generativelanguage.googleapis.com/"
                 }
                 self.available_models.append("gemini-pro")

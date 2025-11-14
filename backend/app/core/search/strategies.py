@@ -22,7 +22,7 @@ class SearchConfig:
     year_range: Tuple[int, int] = (1948, 1979)
     chunk_size: int = 3000
     keywords: Optional[str] = None
-    search_fields: List[str] = field(default_factory=lambda: ["Text"])  # Changed from search_in
+    search_fields: List[str] = field(default_factory=lambda: ["Text"])
     enforce_keywords: bool = True
     top_k: int = 10
     min_relevance_score: float = 0.3

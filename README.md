@@ -62,7 +62,7 @@ cd ../frontend
 npm install
 
 # 3. Configure API endpoint
-# configure .env in backend:
+# Create .env.local with:
 # NEXT_PUBLIC_API_BASE_URL=https://your-backend-domain.com
 
 # 4. Build for production
@@ -97,7 +97,7 @@ npm start
 
 ### Available Language Models
 - **HU Berlin LLMs**: llm1, llm3 (no API keys required)
-- **External APIs**: OpenAI GPT-4o, Google Gemini 2.5 Pro, DeepSeek Reasoner, Anthropic Claude 3.5 Sonnet
+- **External APIs**: OpenAI GPT-4.1, OpenAI GPT-5, Google Gemini 2.5 Pro, DeepSeek Reasoner, Anthropic Claude Haiku 4.5
 
 ## 📚 API Documentation
 
@@ -146,5 +146,5 @@ Out of memory during model loading
 
 ---
 
-**Last Updated**: September 2025  
+**Last Updated**: November 2024
 **Version**: 1.0.0
